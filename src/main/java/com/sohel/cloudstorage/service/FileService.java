@@ -20,7 +20,6 @@ public class FileService {
     @Autowired
     private FileRepository fileRepository;
 
-    // ✅ Upload
     public String uploadFile(MultipartFile file) throws IOException {
 
         String fileName = file.getOriginalFilename().replaceAll(" ", "_");
@@ -37,7 +36,6 @@ public class FileService {
         return "File uploaded successfully";
     }
 
-    // ✅ Download
     public byte[] downloadFile(String fileName) throws IOException {
 
         FileData fileData = fileRepository.findByName(fileName);
@@ -49,12 +47,11 @@ public class FileService {
         return Files.readAllBytes(new File(fileData.getPath()).toPath());
     }
 
-    // ✅ Get all files
     public List<FileData> getAllFiles() {
         return fileRepository.findAll();
     }
 
-    // ✅ Delete file
+
     public String deleteFile(String fileName) {
 
         FileData fileData = fileRepository.findByName(fileName);
@@ -70,4 +67,30 @@ public class FileService {
 
         return "File deleted successfully";
     }
+    public String renameFile(String oldName, String newName) {
+
+    FileData fileData = fileRepository.findByName(oldName);
+
+    if (fileData == null) {
+        return "File not found";
+    }
+
+    File oldFile = new File(fileData.getPath());
+
+    String newPath = FOLDER_PATH + newName;
+
+    File newFile = new File(newPath);
+
+    if (oldFile.renameTo(newFile)) {
+
+        fileData.setName(newName);
+        fileData.setPath(newPath);
+
+        fileRepository.save(fileData);
+
+        return "File renamed successfully";
+    }
+
+    return "Failed to rename file";
+}
 }
