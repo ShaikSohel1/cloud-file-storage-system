@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud Storage</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="logo">☁️ CloudStorage</div>
+
+    <ul>
+        <li class="active">🏠 Dashboard</li>
+        <li>📁 My Files</li>
+        <li>🕒 Recent</li>
+        <li>⭐ Favorites</li>
+        <li>🗑 Trash</li>
+    </ul>
+</div>
+
+<div class="main">
+
+    <div class="topbar">
+        <h1>Welcome back, Sohel 👋</h1>
+
+        <input type="text" placeholder="Search files...">
+    </div>
+
+    <div class="stats">
+
+        <div class="card">
+            <h2 id="totalFiles">0</h2>
+            <p>Total Files</p>
+        </div>
+
+        <div class="card">
+            <h2>MySQL</h2>
+            <p>Metadata Storage</p>
+        </div>
+
+        <div class="card">
+            <h2>REST API</h2>
+            <p>Backend Services</p>
+        </div>
+
+        <div class="card">
+            <h2>Spring Boot</h2>
+            <p>Application Server</p>
+        </div>
+
+    </div>
+
+    <div class="upload-box">
+
+        <h2>📤 Upload Files</h2>
+
+        <input type="file" id="fileInput">
+
+        <button onclick="uploadFile()">
+            Upload File
+        </button>
+
+    </div>
+
+    <div class="files-section">
+
+        <div class="files-header">
+            <h2>📁 My Files</h2>
+            <button onclick="loadFiles()">Refresh</button>
+        </div>
+
+        <div id="fileList"></div>
+
+    </div>
+
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
