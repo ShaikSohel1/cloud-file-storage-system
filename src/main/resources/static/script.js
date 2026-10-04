@@ -160,7 +160,7 @@ const authService = {
         document.getElementById("userAvatar").innerText = initial;
         document.getElementById("userNameLabel").innerText = fullName;
         document.getElementById("userEmailLabel").innerText = email;
-        document.getElementById("welcomeGreeting").innerText = `Welcome back, ${fullName} 👋`;
+        document.getElementById("welcomeGreeting").innerText = `Welcome back, ${fullName}`;
         document.getElementById("statAuthEmail").innerText = email;
 
         // Fetch user's isolated private files and storage statistics
@@ -239,10 +239,10 @@ const authUI = {
         if (!input) return;
         if (input.type === "password") {
             input.type = "text";
-            btn.innerText = "🙈";
+            btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>`;
         } else {
             input.type = "password";
-            btn.innerText = "👁️";
+            btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>`;
         }
     },
 
@@ -443,6 +443,15 @@ function renderFiles(files) {
         const formattedSize = formatBytes(file.size);
         const formattedDate = file.createdAt ? new Date(file.createdAt).toLocaleDateString() : "Just now";
 
+        const starIcon = file.favorite
+            ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="#f59e0b" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`
+            : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
+
+        const previewIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>`;
+        const downloadIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>`;
+        const renameIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>`;
+        const deleteIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>`;
+
         return `
             <div class="file-row" id="file-${file.id}">
                 <div class="file-item-left">
@@ -454,19 +463,19 @@ function renderFiles(files) {
                 </div>
                 <div class="file-actions">
                     <button class="btn-icon" onclick="toggleFavorite('${file.id}')" title="${file.favorite ? 'Unstar' : 'Star'}">
-                        ${file.favorite ? '⭐' : '☆'}
+                        ${starIcon}
                     </button>
                     <button class="btn-icon" onclick="viewFile('${file.id}', '${escapeHtml(file.name)}')" title="Preview">
-                        👁
+                        ${previewIcon}
                     </button>
                     <button class="btn-icon" onclick="downloadFile('${file.id}', '${escapeHtml(file.name)}')" title="Download">
-                        ⬇
+                        ${downloadIcon}
                     </button>
                     <button class="btn-icon" onclick="renameFile('${file.id}', '${escapeHtml(file.name)}')" title="Rename">
-                        ✏
+                        ${renameIcon}
                     </button>
                     <button class="btn-icon" onclick="deleteFile('${file.id}', '${escapeHtml(file.name)}')" title="Delete" style="color:var(--danger)">
-                        🗑
+                        ${deleteIcon}
                     </button>
                 </div>
             </div>
@@ -705,14 +714,25 @@ function filterFiles() {
 // Helpers
 function getFileIcon(ext, type) {
     ext = (ext || "").toLowerCase();
-    if (["png", "jpg", "jpeg", "gif", "svg", "webp"].includes(ext)) return "🖼️";
-    if (["pdf"].includes(ext)) return "📕";
-    if (["zip", "tar", "gz", "rar", "7z"].includes(ext)) return "📦";
-    if (["mp4", "mkv", "mov", "avi"].includes(ext)) return "🎬";
-    if (["mp3", "wav", "ogg"].includes(ext)) return "🎵";
-    if (["js", "ts", "html", "css", "py", "java", "json", "sql"].includes(ext)) return "💻";
-    if (["doc", "docx", "txt", "md"].includes(ext)) return "📝";
-    return "📄";
+    if (["png", "jpg", "jpeg", "gif", "svg", "webp"].includes(ext)) {
+        return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>`;
+    }
+    if (["pdf"].includes(ext)) {
+        return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M9 13v-1a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v1"/></svg>`;
+    }
+    if (["zip", "tar", "gz", "rar", "7z"].includes(ext)) {
+        return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect width="22" height="5" x="1" y="3"/><line x1="10" x2="14" y1="12" y2="12"/></svg>`;
+    }
+    if (["mp4", "mkv", "mov", "avi"].includes(ext)) {
+        return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m10 9 5 3-5 3z"/></svg>`;
+    }
+    if (["mp3", "wav", "ogg"].includes(ext)) {
+        return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`;
+    }
+    if (["js", "ts", "html", "css", "py", "java", "json", "sql"].includes(ext)) {
+        return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>`;
+    }
+    return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>`;
 }
 
 function formatBytes(bytes, decimals = 1) {
