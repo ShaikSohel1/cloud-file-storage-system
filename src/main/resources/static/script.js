@@ -8,8 +8,10 @@ const API_BASE = window.location.origin;
 const SUPABASE_URL = "https://sqatowxytdyauwqlmkcx.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNxYXRvd3h5dGR5YXV3cWxta2N4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwOTkwMzgsImV4cCI6MjEwNjY3NTAzOH0.qEPuvdQrndwlVQY3z7g21HvKbzAvaKRmdMI-wJqUCzg";
 
-// Initialize the official Supabase JavaScript Client
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Initialize the official Supabase JavaScript Client safely (avoiding global variable name collision)
+const supabaseClient = (typeof window.supabase !== "undefined" && typeof window.supabase.createClient === "function")
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+    : null;
 
 // ==========================================================================
 // Centralized Authentication State
@@ -20,9 +22,26 @@ const authService = {
     loading: true,
 
     async init() {
+        const overlay = document.getElementById("authLoadingOverlay");
+        const dismissOverlay = () => {
+            if (overlay) {
+                overlay.style.opacity = "0";
+                overlay.style.transition = "opacity 0.2s ease";
+                setTimeout(() => { overlay.style.display = "none"; }, 200);
+            }
+        };
+
+        if (!supabaseClient) {
+            console.error("Supabase client failed to initialize. Check CDN script tag.");
+            dismissOverlay();
+            this.handleAuthRequired();
+            authUI.showAlert("login", "Supabase client not loaded. Please check your internet connection.");
+            return;
+        }
+
         try {
             // 1. Check existing Supabase session
-            const { data: { session }, error } = await supabase.auth.getSession();
+            const { data: { session }, error } = await supabaseClient.auth.getSession();
             if (error) {
                 console.warn("Session check error:", error.message);
             }
@@ -36,7 +55,7 @@ const authService = {
             }
 
             // 2. Subscribe to auth state transitions
-            supabase.auth.onAuthStateChange(async (event, newSession) => {
+            supabaseClient.auth.onAuthStateChange(async (event, newSession) => {
                 if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
                     if (newSession) {
                         this.session = newSession;
@@ -54,17 +73,13 @@ const authService = {
             this.handleAuthRequired();
         } finally {
             this.loading = false;
-            // Hide the initial fullscreen loading overlay
-            const overlay = document.getElementById("authLoadingOverlay");
-            if (overlay) {
-                overlay.style.opacity = "0";
-                setTimeout(() => { overlay.style.display = "none"; }, 250);
-            }
+            dismissOverlay();
         }
     },
 
     async login(email, password) {
-        const { data, error } = await supabase.auth.signInWithPassword({
+        if (!supabaseClient) throw "Supabase client is not loaded";
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
             email: email.trim(),
             password: password
         });
@@ -79,7 +94,8 @@ const authService = {
     },
 
     async signup(email, password, fullName) {
-        const { data, error } = await supabase.auth.signUp({
+        if (!supabaseClient) throw "Supabase client is not loaded";
+        const { data, error } = await supabaseClient.auth.signUp({
             email: email.trim(),
             password: password,
             options: {
@@ -98,7 +114,9 @@ const authService = {
 
     async logout() {
         try {
-            await supabase.auth.signOut();
+            if (supabaseClient) {
+                await supabaseClient.auth.signOut();
+            }
         } catch (e) {
             console.error("Sign out error:", e);
         } finally {
@@ -111,7 +129,8 @@ const authService = {
     },
 
     async resetPassword(email) {
-        const { data, error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        if (!supabaseClient) throw "Supabase client is not loaded";
+        const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email.trim(), {
             redirectTo: window.location.origin
         });
 
