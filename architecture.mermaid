@@ -1,28 +1,64 @@
 graph TD
-    Client[Web/Mobile Client] -->|HTTPS| LoadBalancer[Load Balancer]
-    
-    subgraph "Application Layer (Spring Boot)"
-        LoadBalancer --> SecurityFilter[Spring Security + JWT]
-        SecurityFilter --> AuthController[Auth & Users]
-        SecurityFilter --> OrgController[Organization & Teams]
-        SecurityFilter --> FileController[Files & Folders]
-        SecurityFilter --> AiController[AI Services]
-        SecurityFilter --> BillingController[Billing & Webhooks]
+    subgraph "Frontend Client"
+        UI[Single Page Web Application<br/>HTML5 / Vanilla CSS / Modern JS]
+        SupaAuthSDK[Supabase Auth JS SDK<br/>Session & Token Management]
+    end
+
+    subgraph "Application Layer (Spring Boot 3.5 Monolith)"
+        SecurityFilter[Security Filter Chain<br/>JwtAuthenticationFilter]
         
-        AiController --> MockAiService[AI Integration Layer]
-        BillingController --> StripeService[Stripe SDK]
+        subgraph "Controllers (REST API - Port 8081)"
+            FileCtrl[FileController<br/>/files]
+            FolderCtrl[FolderController<br/>/folders]
+            TrashCtrl[TrashController<br/>/trash]
+            FavCtrl[FavoriteController<br/>/favorites]
+            StatsCtrl[StatsController<br/>/stats]
+            AuthCtrl[AuthController<br/>/auth]
+            UserCtrl[UserController<br/>/users]
+            ShareCtrl[ShareController<br/>/shares]
+            CollabCtrl[Workspaces, Orgs, Teams, Comments, Tags]
+            SimCtrl[AI, OCR, Insights, Billing Simulations]
+        end
+
+        subgraph "Service Layer"
+            FileService[FileService / FileServiceImpl]
+            StorageRouter[StorageService Interface]
+            SupaStorage[SupabaseStorageService<br/>@Primary HTTP Client]
+            LocalStorage[LocalStorageService<br/>Local Disk ./uploads/]
+            DomainServices[Domain Services<br/>Folder, Trash, Auth, User, Share, Stats...]
+        end
     end
-    
-    subgraph "Data Layer (Supabase)"
-        AuthController --> AuthDB[(PostgreSQL Users)]
-        OrgController --> OrgDB[(PostgreSQL Multi-Tenant)]
-        FileController --> MetaDB[(PostgreSQL File Meta)]
-        FileController --> Storage[Supabase S3 Storage]
-        AiController --> InsightsDB[(PostgreSQL Insights)]
+
+    subgraph "Cloud Data Layer (Supabase)"
+        PostgresDB[(PostgreSQL 17 Database<br/>35 JPA Entities + Flyway V1-V4<br/>Row Level Security Policies)]
+        CloudBucket[(Supabase Storage Bucket<br/>bucket: cloudstorage<br/>Key: user_id/unique_filename)]
     end
-    
-    subgraph "External Integrations"
-        StripeService --> StripeAPI((Stripe API))
-        MockAiService --> OpenAI((OpenAI GPT-4o))
-        MockAiService --> AWSVision((AWS Textract))
+
+    subgraph "Local Fallback Storage"
+        DiskStore[(Local Disk Storage<br/>./uploads/user_id/)]
     end
+
+    %% Interactions
+    UI -->|Bearer JWT + REST Requests| SecurityFilter
+    SupaAuthSDK -.->|Auth & Tokens| SupaAuthService[Supabase Auth Service]
+    SecurityFilter --> FileCtrl
+    SecurityFilter --> FolderCtrl
+    SecurityFilter --> TrashCtrl
+    SecurityFilter --> FavCtrl
+    SecurityFilter --> StatsCtrl
+    SecurityFilter --> AuthCtrl
+    SecurityFilter --> UserCtrl
+    SecurityFilter --> ShareCtrl
+    SecurityFilter --> CollabCtrl
+    SecurityFilter --> SimCtrl
+
+    FileCtrl --> FileService
+    FileService --> StorageRouter
+    StorageRouter -->|Primary| SupaStorage
+    StorageRouter -->|Fallback| LocalStorage
+
+    SupaStorage -->|HTTP REST / multipart| CloudBucket
+    LocalStorage -->|File IO| DiskStore
+
+    FileService -->|Metadata Persistence| PostgresDB
+    DomainServices --> PostgresDB
