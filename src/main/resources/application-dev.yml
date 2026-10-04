@@ -1,0 +1,21 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres.sqatowxytdyauwqlmkcx}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+
+app:
+  storage:
+    type: ${STORAGE_TYPE:supabase}
+    local:
+      folder-path: ${STORAGE_FOLDER_PATH:${user.dir}/uploads/}
+  supabase:
+    url: ${SUPABASE_URL:https://sqatowxytdyauwqlmkcx.supabase.co}
+    key: ${SUPABASE_KEY:}
+    bucket: ${SUPABASE_BUCKET:cloudstorage}
+

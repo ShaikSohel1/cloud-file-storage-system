@@ -1,0 +1,30 @@
+graph TB
+    subgraph "AWS EKS Cluster"
+        Ingress[NGINX Ingress Controller]
+        
+        subgraph "cloudstorage Namespace"
+            GatewaySVC[API Gateway Service]
+            EurekaSVC[Eureka Service]
+            
+            subgraph "Nodes & Pods"
+                GatewayPod(Gateway Pod 1)
+                GatewayPod2(Gateway Pod 2..N)
+                AuthPod(Auth Pod)
+                FilePod(File Pod)
+            end
+            
+            HPA[Horizontal Pod Autoscaler] -.-> GatewayPod
+            HPA -.-> GatewayPod2
+            
+            ConfigMap[ConfigMaps & Secrets] -.-> GatewayPod
+            ConfigMap -.-> AuthPod
+        end
+    end
+
+    Internet((Internet)) -->|TLS| Ingress
+    Ingress --> GatewaySVC
+    GatewaySVC --> GatewayPod
+    GatewaySVC --> GatewayPod2
+    
+    GatewayPod --> AuthPod
+    GatewayPod --> FilePod

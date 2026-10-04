@@ -3,84 +3,246 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cloud Storage</title>
-
+    <title>CloudStorage - Enterprise File Management</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
+    <div class="app-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="logo-icon">☁️</div>
+                <div class="logo-text">
+                    <h2>CloudStorage</h2>
+                    <span class="badge-pill">Enterprise</span>
+                </div>
+            </div>
 
-<div class="sidebar">
-    <div class="logo">☁️ CloudStorage</div>
+            <nav class="nav-menu">
+                <button class="nav-item active" data-tab="all" onclick="switchTab('all')">
+                    <span class="nav-icon">📁</span>
+                    <span>All Files</span>
+                </button>
+                <button class="nav-item" data-tab="favorites" onclick="switchTab('favorites')">
+                    <span class="nav-icon">⭐</span>
+                    <span>Favorites</span>
+                </button>
+                <button class="nav-item" data-tab="analytics" onclick="switchTab('analytics')">
+                    <span class="nav-icon">📊</span>
+                    <span>Storage Stats</span>
+                </button>
+            </nav>
 
-    <ul>
-        <li class="active">🏠 Dashboard</li>
-        <li>📁 My Files</li>
-        <li>🕒 Recent</li>
-        <li>⭐ Favorites</li>
-        <li>🗑 Trash</li>
-    </ul>
-</div>
+            <!-- Storage Meter Widget -->
+            <div class="storage-widget">
+                <div class="storage-header">
+                    <span>Storage Used</span>
+                    <strong id="storagePercentText">0%</strong>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="storageProgressBar" style="width: 0%"></div>
+                </div>
+                <div class="storage-details" id="storageDetailsText">0 MB of 500 MB</div>
+            </div>
 
-<div class="main">
+            <!-- User Profile & Session -->
+            <div class="user-profile-widget" id="userProfileWidget">
+                <div class="avatar-circle" id="userAvatar">U</div>
+                <div class="user-meta">
+                    <div class="user-name" id="userNameLabel">Guest User</div>
+                    <div class="user-email" id="userEmailLabel">Not logged in</div>
+                </div>
+                <button class="btn-icon" id="authActionBtn" onclick="toggleAuthModal()" title="Account">
+                    🔑
+                </button>
+            </div>
+        </aside>
 
-    <div class="topbar">
-        <h1>Welcome back, Sohel 👋</h1>
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Header -->
+            <header class="topbar">
+                <div class="greeting-box">
+                    <h1 id="welcomeGreeting">Welcome to CloudStorage 👋</h1>
+                    <p class="subtitle">Secure high-performance enterprise file storage & management</p>
+                </div>
 
-        <input type="text" placeholder="Search files...">
+                <div class="topbar-actions">
+                    <div class="search-wrapper">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="searchInput" placeholder="Search your files by name..." oninput="filterFiles()">
+                    </div>
+
+                    <button class="btn btn-secondary" id="logoutBtn" style="display:none;" onclick="handleLogout()">
+                        <span>Sign Out</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Live Status & Metric Cards -->
+            <section class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <span class="metric-title">Total Files</span>
+                        <div class="metric-icon-badge blue">📄</div>
+                    </div>
+                    <div class="metric-value" id="statTotalFiles">0</div>
+                    <div class="metric-sub" id="statFilesSub">Active in drive</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <span class="metric-title">Storage Used</span>
+                        <div class="metric-icon-badge purple">💾</div>
+                    </div>
+                    <div class="metric-value" id="statStorageUsed">0 KB</div>
+                    <div class="metric-sub">Supabase Bucket</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <span class="metric-title">System Status</span>
+                        <div class="metric-icon-badge green">⚡</div>
+                    </div>
+                    <div class="metric-value status-online">Online</div>
+                    <div class="metric-sub">Spring Boot 3.5.13</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <span class="metric-title">Cloud Storage</span>
+                        <div class="metric-icon-badge amber">⚡</div>
+                    </div>
+                    <div class="metric-value">Supabase</div>
+                    <div class="metric-sub">PostgreSQL & Storage Active</div>
+                </div>
+            </section>
+
+            <!-- Drag and Drop Upload Zone -->
+            <section class="upload-section">
+                <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                    <input type="file" id="fileInput" style="display:none;" onchange="handleFileSelect(event)">
+                    <div class="drop-zone-content">
+                        <div class="upload-icon-circle">
+                            <span class="upload-arrow">☁️</span>
+                        </div>
+                        <h3>Upload Documents & Files</h3>
+                        <p class="drop-hint">Drag and drop files here, or <span class="highlight">browse from device</span></p>
+                        <div class="file-badges">
+                            <span>PDF</span>
+                            <span>Images</span>
+                            <span>Docs</span>
+                            <span>Code</span>
+                            <span>Archives</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Selected file preview before uploading -->
+                <div class="upload-staging" id="uploadStaging" style="display:none;">
+                    <div class="staging-info">
+                        <span class="staging-name" id="stagingFileName">sample.pdf</span>
+                        <span class="staging-size" id="stagingFileSize">1.2 MB</span>
+                    </div>
+                    <div class="staging-actions">
+                        <button class="btn btn-primary" id="startUploadBtn" onclick="executeUpload()">
+                            <span>Upload File</span>
+                        </button>
+                        <button class="btn btn-outline" onclick="cancelStaging()">Cancel</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Files Management Table Section -->
+            <section class="files-view-section">
+                <div class="section-toolbar">
+                    <div class="toolbar-left">
+                        <h2 id="viewSectionTitle">📁 My Files</h2>
+                        <span class="item-count-badge" id="itemCountBadge">0 items</span>
+                    </div>
+                    <div class="toolbar-right">
+                        <button class="btn btn-sm btn-ghost" onclick="loadFiles()">
+                            🔄 Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div class="empty-state" id="emptyState" style="display: none;">
+                    <div class="empty-illustration">📂</div>
+                    <h3>No files found</h3>
+                    <p>Upload a file using the drop zone above to start managing your storage.</p>
+                </div>
+
+                <!-- File Items List -->
+                <div class="files-list" id="fileListContainer">
+                    <!-- Dynamic file rows will be injected here -->
+                </div>
+            </section>
+        </main>
     </div>
 
-    <div class="stats">
+    <!-- Auth / Login Modal -->
+    <div class="modal-backdrop" id="authModal" style="display:none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="authModalTitle">Sign In to CloudStorage</h3>
+                <button class="modal-close" onclick="closeAuthModal()">✕</button>
+            </div>
+            
+            <div class="quick-demo-banner">
+                <div class="demo-info">
+                    <strong>⚡ Quick 1-Click Access</strong>
+                    <p>Instantly log in with a pre-configured developer demo account.</p>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="quickDemoLogin()">
+                    1-Click Demo Login
+                </button>
+            </div>
 
-        <div class="card">
-            <h2 id="totalFiles">0</h2>
-            <p>Total Files</p>
+            <div class="auth-tabs">
+                <button class="auth-tab-btn active" id="tabLoginBtn" onclick="switchAuthTab('login')">Login</button>
+                <button class="auth-tab-btn" id="tabRegisterBtn" onclick="switchAuthTab('register')">Register</button>
+            </div>
+
+            <form id="authForm" onsubmit="handleAuthSubmit(event)">
+                <div class="form-group" id="nameGroup" style="display:none;">
+                    <div class="form-row">
+                        <input type="text" id="regFirstName" class="form-input" placeholder="First Name">
+                        <input type="text" id="regLastName" class="form-input" placeholder="Last Name">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Username or Email</label>
+                    <input type="text" id="authUsername" class="form-input" placeholder="Enter username or email" required>
+                </div>
+
+                <div class="form-group" id="emailGroup" style="display:none;">
+                    <label>Email Address</label>
+                    <input type="email" id="regEmail" class="form-input" placeholder="name@example.com">
+                </div>
+
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="authPassword" class="form-input" placeholder="Enter password" required>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary btn-block" id="authSubmitBtn">
+                        Sign In
+                    </button>
+                </div>
+            </form>
         </div>
-
-        <div class="card">
-            <h2>MySQL</h2>
-            <p>Metadata Storage</p>
-        </div>
-
-        <div class="card">
-            <h2>REST API</h2>
-            <p>Backend Services</p>
-        </div>
-
-        <div class="card">
-            <h2>Spring Boot</h2>
-            <p>Application Server</p>
-        </div>
-
     </div>
 
-    <div class="upload-box">
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toastContainer"></div>
 
-        <h2>📤 Upload Files</h2>
-
-        <input type="file" id="fileInput">
-
-        <button onclick="uploadFile()">
-            Upload File
-        </button>
-
-    </div>
-
-    <div class="files-section">
-
-        <div class="files-header">
-            <h2>📁 My Files</h2>
-            <button onclick="loadFiles()">Refresh</button>
-        </div>
-
-        <div id="fileList"></div>
-
-    </div>
-
-</div>
-
-<script src="script.js"></script>
-
+    <script src="script.js"></script>
 </body>
 </html>

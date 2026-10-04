@@ -1,0 +1,23 @@
+sequenceDiagram
+    participant User as Web Client
+    participant API as API Gateway
+    participant File as File Service
+    participant Kafka as Kafka Broker
+    participant AI as AI Service
+    participant Webhook as Webhook Service
+
+    User->>API: POST /files (Upload Document)
+    API->>File: Forward Request
+    File->>File: Save to S3 & Postgres
+    File->>Kafka: Publish "FileUploadedEvent"
+    File-->>API: 201 Created
+    API-->>User: Success Response
+
+    Note over Kafka, AI: Asynchronous Processing
+    Kafka->>AI: Consume "FileUploadedEvent"
+    AI->>AI: Extract Text (OCR) & Summarize
+    AI->>Kafka: Publish "DocumentAnalyzedEvent"
+
+    Kafka->>Webhook: Consume "DocumentAnalyzedEvent"
+    Webhook->>Webhook: Check Client Subscriptions
+    Webhook->>User: POST to Client Webhook URL

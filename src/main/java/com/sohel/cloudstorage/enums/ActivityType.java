@@ -1,0 +1,15 @@
+package com.sohel.cloudstorage.enums;
+
+public enum ActivityType {
+    FILE_UPLOADED,
+    FILE_DELETED,
+    FILE_DOWNLOADED,
+    FILE_SHARED,
+    FOLDER_CREATED,
+    FOLDER_DELETED,
+    PERMISSION_CHANGED,
+    WORKSPACE_CREATED,
+    MEMBER_JOINED,
+    MEMBER_REMOVED,
+    COMMENT_ADDED
+}

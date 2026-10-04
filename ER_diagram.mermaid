@@ -1,0 +1,32 @@
+erDiagram
+    ORGANIZATIONS ||--o{ USERS : "current_organization"
+    ORGANIZATIONS ||--o{ ORGANIZATION_MEMBERS : "has"
+    USERS ||--o{ ORGANIZATION_MEMBERS : "belongs_to"
+    
+    ORGANIZATIONS ||--o{ TEAMS : "has"
+    TEAMS ||--o{ TEAM_MEMBERS : "has"
+    USERS ||--o{ TEAM_MEMBERS : "belongs_to"
+    
+    ORGANIZATIONS ||--o{ WORKSPACES : "owns"
+    ORGANIZATIONS ||--o{ API_KEYS : "issues"
+    ORGANIZATIONS ||--o{ WEBHOOKS : "registers"
+    
+    ORGANIZATIONS ||--o| SUBSCRIPTIONS : "has"
+    PLANS ||--o{ SUBSCRIPTIONS : "applies_to"
+    
+    WEBHOOKS ||--o{ WEBHOOK_DELIVERIES : "triggers"
+    
+    WORKSPACES ||--o{ FILES : "contains"
+    WORKSPACES ||--o{ FOLDERS : "contains"
+    
+    FILES ||--o{ FILE_VERSIONS : "has_versions"
+    FILES ||--o| DOCUMENT_INSIGHTS : "analyzed_by_ai"
+    FILES ||--o{ IMAGE_TAGS : "tagged_by_ai"
+    
+    FILES ||--o{ COMMENTS : "has"
+    FILES ||--o{ SHARE_LINKS : "has"
+    
+    USERS ||--o{ AUDIT_LOGS : "performs"
+    USERS ||--o{ SECURITY_LOGS : "triggers"
+    USERS ||--o{ FAVORITES : "marks"
+    USERS ||--o{ TRASH_ITEMS : "deletes"

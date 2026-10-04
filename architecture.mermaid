@@ -1,0 +1,28 @@
+graph TD
+    Client[Web/Mobile Client] -->|HTTPS| LoadBalancer[Load Balancer]
+    
+    subgraph "Application Layer (Spring Boot)"
+        LoadBalancer --> SecurityFilter[Spring Security + JWT]
+        SecurityFilter --> AuthController[Auth & Users]
+        SecurityFilter --> OrgController[Organization & Teams]
+        SecurityFilter --> FileController[Files & Folders]
+        SecurityFilter --> AiController[AI Services]
+        SecurityFilter --> BillingController[Billing & Webhooks]
+        
+        AiController --> MockAiService[AI Integration Layer]
+        BillingController --> StripeService[Stripe SDK]
+    end
+    
+    subgraph "Data Layer (Supabase)"
+        AuthController --> AuthDB[(PostgreSQL Users)]
+        OrgController --> OrgDB[(PostgreSQL Multi-Tenant)]
+        FileController --> MetaDB[(PostgreSQL File Meta)]
+        FileController --> Storage[Supabase S3 Storage]
+        AiController --> InsightsDB[(PostgreSQL Insights)]
+    end
+    
+    subgraph "External Integrations"
+        StripeService --> StripeAPI((Stripe API))
+        MockAiService --> OpenAI((OpenAI GPT-4o))
+        MockAiService --> AWSVision((AWS Textract))
+    end

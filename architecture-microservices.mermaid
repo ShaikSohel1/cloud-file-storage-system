@@ -1,0 +1,39 @@
+graph TD
+    Client[Web/Mobile Client] -->|HTTPS| CDN[Cloudflare CDN]
+    CDN --> API_GW[Spring Cloud Gateway]
+    
+    subgraph "Service Mesh (Kubernetes)"
+        API_GW --> AuthSvc[Auth Service]
+        API_GW --> UserSvc[User Service]
+        API_GW --> OrgSvc[Workspace/Org Service]
+        API_GW --> FileSvc[File Management Service]
+        API_GW --> BillingSvc[Billing Service]
+        API_GW --> AISvc[AI Intelligence Service]
+        API_GW --> NotificationSvc[Notification Service]
+    end
+
+    subgraph "Message Broker"
+        AuthSvc -->|Publish Event| Kafka[Apache Kafka]
+        FileSvc -->|Publish Event| Kafka
+        BillingSvc -->|Publish Event| Kafka
+        
+        Kafka -->|Consume Event| NotificationSvc
+        Kafka -->|Consume Event| AISvc
+    end
+
+    subgraph "Data Persistence & Caching"
+        AuthSvc -.-> DB_Auth[(Auth DB)]
+        FileSvc -.-> DB_File[(File DB)]
+        FileSvc -.-> S3[AWS S3]
+        
+        API_GW -.-> Redis[(Redis Cluster)]
+        FileSvc -.-> Redis
+        
+        AISvc -.-> Elastic[(Elasticsearch)]
+    end
+
+    subgraph "Service Discovery & Config"
+        Eureka[Netflix Eureka] -.->|Registers| AuthSvc
+        Eureka -.->|Registers| FileSvc
+        Config[Spring Cloud Config] -.->|Provides Env| API_GW
+    end
