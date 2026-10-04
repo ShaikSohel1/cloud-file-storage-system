@@ -1,137 +1,360 @@
-const API_BASE = "http://localhost:8080";
-let currentUser = null;
-let currentToken = localStorage.getItem("cloudstorage_token") || null;
+// ==========================================================================
+// CloudStorage - Supabase Auth & Multi-User Data Isolation Client
+// ==========================================================================
+
+const API_BASE = window.location.origin;
+
+// Public Supabase Configuration (DO NOT put service_role or DB passwords here)
+const SUPABASE_URL = "https://sqatowxytdyauwqlmkcx.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNxYXRvd3h5dGR5YXV3cWxta2N4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwOTkwMzgsImV4cCI6MjEwNjY3NTAzOH0.qEPuvdQrndwlVQY3z7g21HvKbzAvaKRmdMI-wJqUCzg";
+
+// Initialize the official Supabase JavaScript Client
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ==========================================================================
+// Centralized Authentication State
+// ==========================================================================
+const authService = {
+    user: null,
+    session: null,
+    loading: true,
+
+    async init() {
+        try {
+            // 1. Check existing Supabase session
+            const { data: { session }, error } = await supabase.auth.getSession();
+            if (error) {
+                console.warn("Session check error:", error.message);
+            }
+
+            if (session && session.user) {
+                this.session = session;
+                this.user = session.user;
+                this.handleAuthSuccess(session);
+            } else {
+                this.handleAuthRequired();
+            }
+
+            // 2. Subscribe to auth state transitions
+            supabase.auth.onAuthStateChange(async (event, newSession) => {
+                if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+                    if (newSession) {
+                        this.session = newSession;
+                        this.user = newSession.user;
+                        this.handleAuthSuccess(newSession);
+                    }
+                } else if (event === "SIGNED_OUT") {
+                    this.session = null;
+                    this.user = null;
+                    this.handleAuthRequired();
+                }
+            });
+        } catch (err) {
+            console.error("Initialization error:", err);
+            this.handleAuthRequired();
+        } finally {
+            this.loading = false;
+            // Hide the initial fullscreen loading overlay
+            const overlay = document.getElementById("authLoadingOverlay");
+            if (overlay) {
+                overlay.style.opacity = "0";
+                setTimeout(() => { overlay.style.display = "none"; }, 250);
+            }
+        }
+    },
+
+    async login(email, password) {
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email: email.trim(),
+            password: password
+        });
+
+        if (error) {
+            throw this.formatAuthError(error);
+        }
+
+        this.session = data.session;
+        this.user = data.user;
+        return data;
+    },
+
+    async signup(email, password, fullName) {
+        const { data, error } = await supabase.auth.signUp({
+            email: email.trim(),
+            password: password,
+            options: {
+                data: {
+                    full_name: fullName.trim()
+                }
+            }
+        });
+
+        if (error) {
+            throw this.formatAuthError(error);
+        }
+
+        return data;
+    },
+
+    async logout() {
+        try {
+            await supabase.auth.signOut();
+        } catch (e) {
+            console.error("Sign out error:", e);
+        } finally {
+            this.session = null;
+            this.user = null;
+            this.clearUserData();
+            this.handleAuthRequired();
+            showToast("You have been signed out.", "info");
+        }
+    },
+
+    async resetPassword(email) {
+        const { data, error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+            redirectTo: window.location.origin
+        });
+
+        if (error) {
+            throw this.formatAuthError(error);
+        }
+
+        return data;
+    },
+
+    getAccessToken() {
+        return this.session ? this.session.access_token : null;
+    },
+
+    handleAuthSuccess(session) {
+        // Hide Auth Cards, Show Main Application
+        document.getElementById("authContainer").style.display = "none";
+        document.getElementById("appLayout").style.display = "flex";
+
+        // Update User UI elements
+        const user = session.user;
+        const meta = user.user_metadata || {};
+        const fullName = meta.full_name || meta.name || user.email.split("@")[0];
+        const email = user.email || "";
+        const initial = fullName ? fullName[0].toUpperCase() : "U";
+
+        document.getElementById("userAvatar").innerText = initial;
+        document.getElementById("userNameLabel").innerText = fullName;
+        document.getElementById("userEmailLabel").innerText = email;
+        document.getElementById("welcomeGreeting").innerText = `Welcome back, ${fullName} 👋`;
+        document.getElementById("statAuthEmail").innerText = email;
+
+        // Fetch user's isolated private files and storage statistics
+        loadFiles();
+        loadStats();
+    },
+
+    handleAuthRequired() {
+        // Hide Main Application, Show Auth Cards
+        document.getElementById("appLayout").style.display = "none";
+        document.getElementById("authContainer").style.display = "flex";
+        authUI.showView("login");
+    },
+
+    clearUserData() {
+        allFiles = [];
+        renderFiles([]);
+        document.getElementById("statTotalFiles").innerText = "0";
+        document.getElementById("statStorageUsed").innerText = "0 KB";
+        document.getElementById("storagePercentText").innerText = "0%";
+        document.getElementById("storageProgressBar").style.width = "0%";
+    },
+
+    formatAuthError(err) {
+        const msg = (err.message || "").toLowerCase();
+        if (msg.includes("invalid login credentials") || msg.includes("invalid_grant")) {
+            return "Incorrect email or password.";
+        }
+        if (msg.includes("user already registered") || msg.includes("already exists")) {
+            return "An account with this email already exists.";
+        }
+        if (msg.includes("password should be at least")) {
+            return "Password must be at least 6 characters long.";
+        }
+        if (msg.includes("rate limit") || msg.includes("too many requests")) {
+            return "Too many attempts. Please wait a moment and try again.";
+        }
+        return err.message || "Authentication error. Please try again.";
+    }
+};
+
+// ==========================================================================
+// Auth UI Controls (Forms, Views, Validation)
+// ==========================================================================
+const authUI = {
+    currentView: "login",
+
+    showView(viewName) {
+        this.currentView = viewName;
+        ["login", "signup", "forgot"].forEach(v => {
+            const el = document.getElementById(`${v}View`);
+            if (el) el.style.display = v === viewName ? "block" : "none";
+            this.clearAlert(v);
+        });
+    },
+
+    showAlert(view, message, type = "error") {
+        const alertEl = document.getElementById(`${view}Alert`);
+        if (alertEl) {
+            alertEl.className = `auth-alert ${type}`;
+            alertEl.innerText = message;
+            alertEl.style.display = "block";
+        }
+    },
+
+    clearAlert(view) {
+        const alertEl = document.getElementById(`${view}Alert`);
+        if (alertEl) {
+            alertEl.style.display = "none";
+            alertEl.innerText = "";
+        }
+    },
+
+    togglePasswordVisibility(inputId, btn) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        if (input.type === "password") {
+            input.type = "text";
+            btn.innerText = "🙈";
+        } else {
+            input.type = "password";
+            btn.innerText = "👁️";
+        }
+    },
+
+    async handleLogin(e) {
+        e.preventDefault();
+        this.clearAlert("login");
+
+        const email = document.getElementById("loginEmail").value;
+        const password = document.getElementById("loginPassword").value;
+
+        if (!email || !password) {
+            this.showAlert("login", "Please enter both your email and password.");
+            return;
+        }
+
+        const btn = document.getElementById("loginSubmitBtn");
+        btn.disabled = true;
+        btn.innerHTML = "<span>Signing in...</span>";
+
+        try {
+            await authService.login(email, password);
+            showToast("Signed in successfully!", "success");
+        } catch (err) {
+            this.showAlert("login", err);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = "<span>Login</span>";
+        }
+    },
+
+    async handleSignup(e) {
+        e.preventDefault();
+        this.clearAlert("signup");
+
+        const fullName = document.getElementById("signupFullName").value.trim();
+        const email = document.getElementById("signupEmail").value.trim();
+        const password = document.getElementById("signupPassword").value;
+        const confirmPassword = document.getElementById("signupConfirmPassword").value;
+
+        // Validation
+        if (!fullName || !email || !password || !confirmPassword) {
+            this.showAlert("signup", "Please fill in all required fields.");
+            return;
+        }
+
+        if (password.length < 6) {
+            this.showAlert("signup", "Password must be at least 6 characters long.");
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            this.showAlert("signup", "Passwords do not match.");
+            return;
+        }
+
+        const btn = document.getElementById("signupSubmitBtn");
+        btn.disabled = true;
+        btn.innerHTML = "<span>Creating Account...</span>";
+
+        try {
+            const result = await authService.signup(email, password, fullName);
+
+            if (result.session) {
+                showToast("Account created successfully!", "success");
+            } else {
+                // If email confirmation is required by Supabase:
+                this.showAlert(
+                    "signup",
+                    "Account created! Please check your email to verify your account before signing in.",
+                    "success"
+                );
+                setTimeout(() => {
+                    this.showView("login");
+                    document.getElementById("loginEmail").value = email;
+                }, 4000);
+            }
+        } catch (err) {
+            this.showAlert("signup", err);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = "<span>Create Account</span>";
+        }
+    },
+
+    async handleForgot(e) {
+        e.preventDefault();
+        this.clearAlert("forgot");
+
+        const email = document.getElementById("forgotEmail").value.trim();
+        if (!email) {
+            this.showAlert("forgot", "Please enter your account email address.");
+            return;
+        }
+
+        const btn = document.getElementById("forgotSubmitBtn");
+        btn.disabled = true;
+        btn.innerHTML = "<span>Sending Reset Link...</span>";
+
+        try {
+            await authService.resetPassword(email);
+            this.showAlert("forgot", "Check your email for a password reset link.", "success");
+        } catch (err) {
+            this.showAlert("forgot", err);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = "<span>Send Reset Link</span>";
+        }
+    }
+};
+
+// ==========================================================================
+// Application Files Management State & Handlers
+// ==========================================================================
 let allFiles = [];
 let currentTab = "all";
 let stagedFile = null;
 
-// Initialize on load
-window.addEventListener("DOMContentLoaded", async () => {
-    initDragAndDrop();
-    if (currentToken) {
-        await fetchUserProfile();
-    } else {
-        updateGuestUI();
-    }
-    await loadFiles();
-    await loadStats();
-});
-
-// Auth Headers helper
+// Auth Header helper for Spring Boot REST API
 function getAuthHeaders(isJson = true) {
     const headers = {};
     if (isJson) {
         headers["Content-Type"] = "application/json";
     }
-    if (currentToken) {
-        headers["Authorization"] = `Bearer ${currentToken}`;
+    const token = authService.getAccessToken();
+    if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
     }
     return headers;
 }
 
-// Fetch Profile
-async function fetchUserProfile() {
-    try {
-        const res = await fetch(`${API_BASE}/users/me`, {
-            headers: getAuthHeaders(true)
-        });
-        if (res.ok) {
-            const data = await res.json();
-            currentUser = data.data;
-            updateUserUI();
-        } else {
-            handleSessionExpired();
-        }
-    } catch (e) {
-        console.error("Failed to load user profile", e);
-    }
-}
-
-function updateUserUI() {
-    if (!currentUser) return;
-    document.getElementById("userAvatar").innerText = (currentUser.firstName || currentUser.username || "U")[0].toUpperCase();
-    document.getElementById("userNameLabel").innerText = `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() || currentUser.username;
-    document.getElementById("userEmailLabel").innerText = currentUser.email || "";
-    document.getElementById("welcomeGreeting").innerText = `Welcome back, ${currentUser.firstName || currentUser.username} 👋`;
-    document.getElementById("logoutBtn").style.display = "inline-flex";
-    document.getElementById("authActionBtn").innerText = "👤";
-}
-
-function updateGuestUI() {
-    currentUser = null;
-    document.getElementById("userAvatar").innerText = "G";
-    document.getElementById("userNameLabel").innerText = "Guest Mode";
-    document.getElementById("userEmailLabel").innerText = "Sign in to manage files";
-    document.getElementById("welcomeGreeting").innerText = "Welcome to CloudStorage 👋";
-    document.getElementById("logoutBtn").style.display = "none";
-    document.getElementById("authActionBtn").innerText = "🔑";
-}
-
-function handleSessionExpired() {
-    localStorage.removeItem("cloudstorage_token");
-    currentToken = null;
-    updateGuestUI();
-}
-
-// Quick 1-Click Demo Login
-async function quickDemoLogin() {
-    showToast("Authenticating demo account...", "info");
-    const demoPayload = {
-        usernameOrEmail: "sohel",
-        password: "password123"
-    };
-
-    try {
-        let res = await fetch(`${API_BASE}/auth/login`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(demoPayload)
-        });
-
-        // If not registered yet, auto register first
-        if (!res.ok) {
-            const regPayload = {
-                firstName: "Sohel",
-                lastName: "Shaik",
-                username: "sohel",
-                email: "sohel@cloudstorage.local",
-                password: "password123"
-            };
-            const regRes = await fetch(`${API_BASE}/auth/register`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(regPayload)
-            });
-
-            if (regRes.ok) {
-                // Now log in
-                res = await fetch(`${API_BASE}/auth/login`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(demoPayload)
-                });
-            }
-        }
-
-        if (res.ok) {
-            const data = await res.json();
-            currentToken = data.data.accessToken;
-            localStorage.setItem("cloudstorage_token", currentToken);
-            currentUser = data.data.user;
-            updateUserUI();
-            closeAuthModal();
-            showToast("Logged in successfully as Demo User!", "success");
-            await loadFiles();
-            await loadStats();
-        } else {
-            showToast("Demo login failed.", "error");
-        }
-    } catch (e) {
-        showToast("Error connecting to server", "error");
-    }
-}
-
-// Switch between My Files, Favorites, Stats
+// Navigation Tabs
 function switchTab(tab) {
     currentTab = tab;
     document.querySelectorAll(".nav-item").forEach(btn => {
@@ -146,13 +369,10 @@ function switchTab(tab) {
     renderFiles(allFiles);
 }
 
-// Load Files List
+// Load Files (Row-Level Security isolated per user)
 async function loadFiles() {
-    if (!currentToken) {
-        // Prompt for demo login if no token
-        renderEmptyState("Please sign in or use 1-Click Demo Login to view files.");
-        return;
-    }
+    const token = authService.getAccessToken();
+    if (!token) return;
 
     try {
         const res = await fetch(`${API_BASE}/files`, {
@@ -164,16 +384,16 @@ async function loadFiles() {
             allFiles = result.data || [];
             renderFiles(allFiles);
         } else if (res.status === 401) {
-            handleSessionExpired();
-            renderEmptyState("Session expired. Please sign in again.");
+            authService.handleAuthRequired();
+        } else {
+            console.error("Failed to fetch files:", res.status);
         }
     } catch (err) {
         console.error("Load files error:", err);
-        renderEmptyState("Could not connect to CloudStorage server.");
     }
 }
 
-// Render Files
+// Render Files to DOM
 function renderFiles(files) {
     const container = document.getElementById("fileListContainer");
     const emptyState = document.getElementById("emptyState");
@@ -235,18 +455,10 @@ function renderFiles(files) {
     }).join("");
 }
 
-function renderEmptyState(message) {
-    const container = document.getElementById("fileListContainer");
-    const emptyState = document.getElementById("emptyState");
-    container.innerHTML = "";
-    emptyState.style.display = "block";
-    emptyState.querySelector("p").innerText = message;
-    document.getElementById("itemCountBadge").innerText = "0 items";
-}
-
 // Drag & Drop Handling
 function initDragAndDrop() {
     const zone = document.getElementById("dropZone");
+    if (!zone) return;
 
     ["dragenter", "dragover"].forEach(eventName => {
         zone.addEventListener(eventName, e => {
@@ -288,13 +500,14 @@ function cancelStaging() {
     document.getElementById("uploadStaging").style.display = "none";
 }
 
-// Execute Upload
+// Upload File
 async function executeUpload() {
     if (!stagedFile) return;
 
-    if (!currentToken) {
-        showToast("Please sign in or use Quick Demo Login to upload.", "error");
-        toggleAuthModal();
+    const token = authService.getAccessToken();
+    if (!token) {
+        showToast("Please sign in to upload files.", "error");
+        authService.handleAuthRequired();
         return;
     }
 
@@ -309,7 +522,7 @@ async function executeUpload() {
         const res = await fetch(`${API_BASE}/files/upload`, {
             method: "POST",
             headers: {
-                "Authorization": `Bearer ${currentToken}`
+                "Authorization": `Bearer ${token}`
             },
             body: formData
         });
@@ -333,10 +546,12 @@ async function executeUpload() {
 
 // View / Preview File
 async function viewFile(fileId, fileName) {
-    if (!currentToken) return;
+    const token = authService.getAccessToken();
+    if (!token) return;
+
     try {
         const res = await fetch(`${API_BASE}/files/view/${fileId}`, {
-            headers: { "Authorization": `Bearer ${currentToken}` }
+            headers: { "Authorization": `Bearer ${token}` }
         });
         if (!res.ok) {
             showToast("Unable to preview file", "error");
@@ -352,10 +567,12 @@ async function viewFile(fileId, fileName) {
 
 // Download File
 async function downloadFile(fileId, fileName) {
-    if (!currentToken) return;
+    const token = authService.getAccessToken();
+    if (!token) return;
+
     try {
         const res = await fetch(`${API_BASE}/files/download/${fileId}`, {
-            headers: { "Authorization": `Bearer ${currentToken}` }
+            headers: { "Authorization": `Bearer ${token}` }
         });
         if (!res.ok) {
             showToast("Download failed", "error");
@@ -422,7 +639,7 @@ async function deleteFile(fileId, fileName) {
             headers: getAuthHeaders(true)
         });
         if (res.ok) {
-            showToast("File moved to trash", "success");
+            showToast("File deleted", "success");
             await loadFiles();
             await loadStats();
         } else {
@@ -433,9 +650,11 @@ async function deleteFile(fileId, fileName) {
     }
 }
 
-// Load Storage Stats
+// Load Storage Statistics
 async function loadStats() {
-    if (!currentToken) return;
+    const token = authService.getAccessToken();
+    if (!token) return;
+
     try {
         const res = await fetch(`${API_BASE}/stats/storage`, {
             headers: getAuthHeaders(true)
@@ -445,7 +664,7 @@ async function loadStats() {
             const stats = resData.data;
             if (stats) {
                 const used = stats.storageUsed || 0;
-                const limit = stats.storageLimit || (500 * 1024 * 1024);
+                const limit = stats.storageLimit || (15 * 1024 * 1024 * 1024);
                 const percent = Math.min(100, Math.round((used / limit) * 100));
 
                 document.getElementById("statStorageUsed").innerText = formatBytes(used);
@@ -462,91 +681,6 @@ async function loadStats() {
 // Search Filter
 function filterFiles() {
     renderFiles(allFiles);
-}
-
-// Auth Modal Controls
-let authMode = "login";
-function toggleAuthModal() {
-    const modal = document.getElementById("authModal");
-    modal.style.display = modal.style.display === "none" ? "flex" : "none";
-}
-
-function closeAuthModal() {
-    document.getElementById("authModal").style.display = "none";
-}
-
-function switchAuthTab(mode) {
-    authMode = mode;
-    document.getElementById("tabLoginBtn").classList.toggle("active", mode === "login");
-    document.getElementById("tabRegisterBtn").classList.toggle("active", mode === "register");
-    document.getElementById("nameGroup").style.display = mode === "register" ? "block" : "none";
-    document.getElementById("emailGroup").style.display = mode === "register" ? "block" : "none";
-    document.getElementById("authModalTitle").innerText = mode === "login" ? "Sign In to CloudStorage" : "Create CloudStorage Account";
-    document.getElementById("authSubmitBtn").innerText = mode === "login" ? "Sign In" : "Create Account";
-}
-
-async function handleAuthSubmit(e) {
-    e.preventDefault();
-    const username = document.getElementById("authUsername").value.trim();
-    const password = document.getElementById("authPassword").value;
-
-    if (authMode === "login") {
-        try {
-            const res = await fetch(`${API_BASE}/auth/login`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ usernameOrEmail: username, password: password })
-            });
-
-            const data = await res.json();
-            if (res.ok) {
-                currentToken = data.data.accessToken;
-                localStorage.setItem("cloudstorage_token", currentToken);
-                currentUser = data.data.user;
-                updateUserUI();
-                closeAuthModal();
-                showToast("Welcome back!", "success");
-                await loadFiles();
-                await loadStats();
-            } else {
-                showToast(data.message || "Invalid credentials", "error");
-            }
-        } catch (err) {
-            showToast("Server connection error", "error");
-        }
-    } else {
-        const firstName = document.getElementById("regFirstName").value.trim();
-        const lastName = document.getElementById("regLastName").value.trim();
-        const email = document.getElementById("regEmail").value.trim();
-
-        try {
-            const res = await fetch(`${API_BASE}/auth/register`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ firstName, lastName, username, email, password })
-            });
-
-            const data = await res.json();
-            if (res.ok) {
-                showToast("Account created! Logging in...", "success");
-                // Auto login
-                switchAuthTab("login");
-                document.getElementById("authUsername").value = username;
-                document.getElementById("authPassword").value = password;
-                document.getElementById("authForm").dispatchEvent(new Event("submit"));
-            } else {
-                showToast(data.message || "Registration failed", "error");
-            }
-        } catch (err) {
-            showToast("Server connection error", "error");
-        }
-    }
-}
-
-function handleLogout() {
-    handleSessionExpired();
-    showToast("Signed out", "info");
-    loadFiles();
 }
 
 // Helpers
@@ -578,6 +712,7 @@ function escapeHtml(str) {
 
 function showToast(message, type = "info") {
     const container = document.getElementById("toastContainer");
+    if (!container) return;
     const toast = document.createElement("div");
     toast.className = `toast ${type}`;
     toast.innerText = message;
@@ -587,3 +722,11 @@ function showToast(message, type = "info") {
         setTimeout(() => toast.remove(), 300);
     }, 3500);
 }
+
+// ==========================================================================
+// App Startup Hook
+// ==========================================================================
+window.addEventListener("DOMContentLoaded", async () => {
+    initDragAndDrop();
+    await authService.init();
+});

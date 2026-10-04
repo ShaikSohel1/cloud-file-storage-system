@@ -10,7 +10,142 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="app-layout">
+
+    <!-- 1. Fullscreen Authentication Session Check Overlay -->
+    <div id="authLoadingOverlay" class="auth-loading-overlay">
+        <div class="auth-brand-logo">☁️</div>
+        <div class="auth-loading-spinner"></div>
+        <div class="auth-loading-text">Verifying security session...</div>
+    </div>
+
+    <!-- 2. Authentication Container (Login / Signup / Forgot Password) -->
+    <div id="authContainer" class="auth-page-container" style="display: none;">
+        <div class="auth-card">
+            <!-- Brand Logo -->
+            <div class="auth-header">
+                <div class="auth-brand-logo">☁️</div>
+                <div class="brand-text">
+                    <h2>CloudStorage</h2>
+                    <span class="badge-pill">Enterprise</span>
+                </div>
+            </div>
+
+            <!-- VIEW: LOGIN -->
+            <div id="loginView">
+                <div class="auth-header" style="margin-bottom: 20px;">
+                    <h3 class="auth-title">Welcome Back</h3>
+                    <p class="auth-subtitle">Sign in to access your secure files</p>
+                </div>
+
+                <div id="loginAlert" class="auth-alert"></div>
+
+                <form id="loginForm" class="auth-form" onsubmit="authUI.handleLogin(event)" novalidate>
+                    <div class="form-group">
+                        <label for="loginEmail">Email Address</label>
+                        <input type="email" id="loginEmail" class="form-input" placeholder="name@example.com" required autocomplete="email">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="loginPassword">Password</label>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="loginPassword" class="form-input" placeholder="Enter your password" required autocomplete="current-password">
+                            <button type="button" class="password-toggle-btn" onclick="authUI.togglePasswordVisibility('loginPassword', this)" title="Show/Hide Password">👁️</button>
+                        </div>
+                    </div>
+
+                    <div class="auth-links-row">
+                        <span></span>
+                        <button type="button" class="auth-text-link" onclick="authUI.showView('forgot')">Forgot Password?</button>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block" id="loginSubmitBtn">
+                        <span>Login</span>
+                    </button>
+
+                    <div class="auth-switch-text">
+                        Don't have an account?
+                        <button type="button" class="auth-text-link" onclick="authUI.showView('signup')">Create Account</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- VIEW: SIGNUP -->
+            <div id="signupView" style="display: none;">
+                <div class="auth-header" style="margin-bottom: 20px;">
+                    <h3 class="auth-title">Create Account</h3>
+                    <p class="auth-subtitle">Start using CloudStorage for your files</p>
+                </div>
+
+                <div id="signupAlert" class="auth-alert"></div>
+
+                <form id="signupForm" class="auth-form" onsubmit="authUI.handleSignup(event)" novalidate>
+                    <div class="form-group">
+                        <label for="signupFullName">Full Name</label>
+                        <input type="text" id="signupFullName" class="form-input" placeholder="John Doe" required autocomplete="name">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="signupEmail">Email Address</label>
+                        <input type="email" id="signupEmail" class="form-input" placeholder="name@example.com" required autocomplete="email">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="signupPassword">Password</label>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="signupPassword" class="form-input" placeholder="At least 6 characters" required autocomplete="new-password" minlength="6">
+                            <button type="button" class="password-toggle-btn" onclick="authUI.togglePasswordVisibility('signupPassword', this)">👁️</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="signupConfirmPassword">Confirm Password</label>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="signupConfirmPassword" class="form-input" placeholder="Repeat your password" required autocomplete="new-password">
+                            <button type="button" class="password-toggle-btn" onclick="authUI.togglePasswordVisibility('signupConfirmPassword', this)">👁️</button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block" id="signupSubmitBtn">
+                        <span>Create Account</span>
+                    </button>
+
+                    <div class="auth-switch-text">
+                        Already have an account?
+                        <button type="button" class="auth-text-link" onclick="authUI.showView('login')">Login</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- VIEW: FORGOT PASSWORD -->
+            <div id="forgotView" style="display: none;">
+                <div class="auth-header" style="margin-bottom: 20px;">
+                    <h3 class="auth-title">Reset Password</h3>
+                    <p class="auth-subtitle">Enter your email to receive recovery instructions</p>
+                </div>
+
+                <div id="forgotAlert" class="auth-alert"></div>
+
+                <form id="forgotForm" class="auth-form" onsubmit="authUI.handleForgot(event)" novalidate>
+                    <div class="form-group">
+                        <label for="forgotEmail">Email Address</label>
+                        <input type="email" id="forgotEmail" class="form-input" placeholder="name@example.com" required autocomplete="email">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block" id="forgotSubmitBtn">
+                        <span>Send Reset Link</span>
+                    </button>
+
+                    <div class="auth-switch-text">
+                        Remembered your password?
+                        <button type="button" class="auth-text-link" onclick="authUI.showView('login')">Back to Login</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Protected Main Application Layout (Visible ONLY when authenticated) -->
+    <div id="appLayout" class="app-layout" style="display: none;">
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="brand">
@@ -45,18 +180,18 @@
                 <div class="progress-bar-bg">
                     <div class="progress-bar-fill" id="storageProgressBar" style="width: 0%"></div>
                 </div>
-                <div class="storage-details" id="storageDetailsText">0 MB of 500 MB</div>
+                <div class="storage-details" id="storageDetailsText">0 MB of 15 GB</div>
             </div>
 
-            <!-- User Profile & Session -->
+            <!-- User Profile & Session Widget -->
             <div class="user-profile-widget" id="userProfileWidget">
                 <div class="avatar-circle" id="userAvatar">U</div>
                 <div class="user-meta">
-                    <div class="user-name" id="userNameLabel">Guest User</div>
-                    <div class="user-email" id="userEmailLabel">Not logged in</div>
+                    <div class="user-name" id="userNameLabel">Loading...</div>
+                    <div class="user-email" id="userEmailLabel">User</div>
                 </div>
-                <button class="btn-icon" id="authActionBtn" onclick="toggleAuthModal()" title="Account">
-                    🔑
+                <button class="btn-icon" onclick="authService.logout()" title="Logout" style="color: var(--danger);">
+                    🚪
                 </button>
             </div>
         </aside>
@@ -66,8 +201,8 @@
             <!-- Top Header -->
             <header class="topbar">
                 <div class="greeting-box">
-                    <h1 id="welcomeGreeting">Welcome to CloudStorage 👋</h1>
-                    <p class="subtitle">Secure high-performance enterprise file storage & management</p>
+                    <h1 id="welcomeGreeting">Welcome back 👋</h1>
+                    <p class="subtitle">Secure high-performance enterprise file storage with database RLS isolation</p>
                 </div>
 
                 <div class="topbar-actions">
@@ -76,7 +211,7 @@
                         <input type="text" id="searchInput" placeholder="Search your files by name..." oninput="filterFiles()">
                     </div>
 
-                    <button class="btn btn-secondary" id="logoutBtn" style="display:none;" onclick="handleLogout()">
+                    <button class="btn btn-secondary" id="logoutBtn" onclick="authService.logout()" title="Sign Out">
                         <span>Sign Out</span>
                     </button>
                 </div>
@@ -86,11 +221,11 @@
             <section class="metrics-grid">
                 <div class="metric-card">
                     <div class="metric-header">
-                        <span class="metric-title">Total Files</span>
+                        <span class="metric-title">My Total Files</span>
                         <div class="metric-icon-badge blue">📄</div>
                     </div>
                     <div class="metric-value" id="statTotalFiles">0</div>
-                    <div class="metric-sub" id="statFilesSub">Active in drive</div>
+                    <div class="metric-sub" id="statFilesSub">Private to your account</div>
                 </div>
 
                 <div class="metric-card">
@@ -107,17 +242,17 @@
                         <span class="metric-title">System Status</span>
                         <div class="metric-icon-badge green">⚡</div>
                     </div>
-                    <div class="metric-value status-online">Online</div>
-                    <div class="metric-sub">Spring Boot 3.5.13</div>
+                    <div class="metric-value status-online">Protected</div>
+                    <div class="metric-sub">PostgreSQL RLS Active</div>
                 </div>
 
                 <div class="metric-card">
                     <div class="metric-header">
-                        <span class="metric-title">Cloud Storage</span>
-                        <div class="metric-icon-badge amber">⚡</div>
+                        <span class="metric-title">Auth Provider</span>
+                        <div class="metric-icon-badge amber">🔒</div>
                     </div>
-                    <div class="metric-value">Supabase</div>
-                    <div class="metric-sub">PostgreSQL & Storage Active</div>
+                    <div class="metric-value">Supabase Auth</div>
+                    <div class="metric-sub" id="statAuthEmail">Verified Session</div>
                 </div>
             </section>
 
@@ -174,7 +309,7 @@
                 <div class="empty-state" id="emptyState" style="display: none;">
                     <div class="empty-illustration">📂</div>
                     <h3>No files found</h3>
-                    <p>Upload a file using the drop zone above to start managing your storage.</p>
+                    <p>Upload a file using the drop zone above to start managing your private storage.</p>
                 </div>
 
                 <!-- File Items List -->
@@ -185,64 +320,12 @@
         </main>
     </div>
 
-    <!-- Auth / Login Modal -->
-    <div class="modal-backdrop" id="authModal" style="display:none;">
-        <div class="modal-card">
-            <div class="modal-header">
-                <h3 id="authModalTitle">Sign In to CloudStorage</h3>
-                <button class="modal-close" onclick="closeAuthModal()">✕</button>
-            </div>
-            
-            <div class="quick-demo-banner">
-                <div class="demo-info">
-                    <strong>⚡ Quick 1-Click Access</strong>
-                    <p>Instantly log in with a pre-configured developer demo account.</p>
-                </div>
-                <button class="btn btn-primary btn-sm" onclick="quickDemoLogin()">
-                    1-Click Demo Login
-                </button>
-            </div>
-
-            <div class="auth-tabs">
-                <button class="auth-tab-btn active" id="tabLoginBtn" onclick="switchAuthTab('login')">Login</button>
-                <button class="auth-tab-btn" id="tabRegisterBtn" onclick="switchAuthTab('register')">Register</button>
-            </div>
-
-            <form id="authForm" onsubmit="handleAuthSubmit(event)">
-                <div class="form-group" id="nameGroup" style="display:none;">
-                    <div class="form-row">
-                        <input type="text" id="regFirstName" class="form-input" placeholder="First Name">
-                        <input type="text" id="regLastName" class="form-input" placeholder="Last Name">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Username or Email</label>
-                    <input type="text" id="authUsername" class="form-input" placeholder="Enter username or email" required>
-                </div>
-
-                <div class="form-group" id="emailGroup" style="display:none;">
-                    <label>Email Address</label>
-                    <input type="email" id="regEmail" class="form-input" placeholder="name@example.com">
-                </div>
-
-                <div class="form-group">
-                    <label>Password</label>
-                    <input type="password" id="authPassword" class="form-input" placeholder="Enter password" required>
-                </div>
-
-                <div class="modal-footer">
-                    <button type="submit" class="btn btn-primary btn-block" id="authSubmitBtn">
-                        Sign In
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
     <!-- Toast Notification Container -->
     <div class="toast-container" id="toastContainer"></div>
 
+    <!-- Supabase JS v2 Client Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Application Logic & Centralized Auth State -->
     <script src="script.js"></script>
 </body>
 </html>

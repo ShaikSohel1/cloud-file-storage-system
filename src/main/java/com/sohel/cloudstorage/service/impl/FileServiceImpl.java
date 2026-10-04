@@ -245,6 +245,14 @@ public class FileServiceImpl implements FileService {
 
     private UserEntity getUser(String username) {
         return userRepository.findByUsername(username)
+                .or(() -> userRepository.findByEmail(username))
+                .or(() -> {
+                    try {
+                        return userRepository.findById(UUID.fromString(username));
+                    } catch (Exception e) {
+                        return java.util.Optional.empty();
+                    }
+                })
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
     }
 }
