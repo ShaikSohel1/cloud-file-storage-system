@@ -237,94 +237,138 @@
                 </div>
             </header>
 
-            <!-- Live Status & Metric Cards -->
-            <section class="metrics-grid">
-                <div class="metric-card">
-                    <div class="metric-header">
-                        <span class="metric-title">My Total Files</span>
-                        <div class="metric-icon-badge blue">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <!-- ============================================== -->
+            <!-- 1. TAB: ALL FILES PAGE                         -->
+            <!-- ============================================== -->
+            <div id="tabAllFiles" class="tab-content active">
+                <!-- Live Status & Metric Cards -->
+                <section class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">My Total Files</span>
+                            <div class="metric-icon-badge blue">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                            </div>
+                        </div>
+                        <div class="metric-value" id="statTotalFiles">0</div>
+                        <div class="metric-sub" id="statFilesSub">Private to your account</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">Storage Used</span>
+                            <div class="metric-icon-badge purple">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
+                            </div>
+                        </div>
+                        <div class="metric-value" id="statStorageUsed">0 KB</div>
+                        <div class="metric-sub">Supabase Bucket</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">System Status</span>
+                            <div class="metric-icon-badge green">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                            </div>
+                        </div>
+                        <div class="metric-value status-online">Protected</div>
+                        <div class="metric-sub">PostgreSQL RLS Active</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">Auth Provider</span>
+                            <div class="metric-icon-badge amber">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                            </div>
+                        </div>
+                        <div class="metric-value">Supabase Auth</div>
+                        <div class="metric-sub" id="statAuthEmail">Verified Session</div>
+                    </div>
+                </section>
+
+                <!-- Drag and Drop Upload Zone -->
+                <section class="upload-section">
+                    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                        <input type="file" id="fileInput" style="display:none;" onchange="handleFileSelect(event)">
+                        <div class="drop-zone-content">
+                            <div class="upload-icon-circle">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></svg>
+                            </div>
+                            <h3>Upload Documents & Files</h3>
+                            <p class="drop-hint">Drag and drop files here, or <span class="highlight">browse from device</span></p>
+                            <div class="file-badges">
+                                <span>PDF</span>
+                                <span>Images</span>
+                                <span>Docs</span>
+                                <span>Code</span>
+                                <span>Archives</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="metric-value" id="statTotalFiles">0</div>
-                    <div class="metric-sub" id="statFilesSub">Private to your account</div>
-                </div>
 
-                <div class="metric-card">
-                    <div class="metric-header">
-                        <span class="metric-title">Storage Used</span>
-                        <div class="metric-icon-badge purple">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
+                    <!-- Selected file preview before uploading -->
+                    <div class="upload-staging" id="uploadStaging" style="display:none;">
+                        <div class="staging-info">
+                            <span class="staging-name" id="stagingFileName">sample.pdf</span>
+                            <span class="staging-size" id="stagingFileSize">1.2 MB</span>
+                        </div>
+                        <div class="staging-actions">
+                            <button class="btn btn-primary" id="startUploadBtn" onclick="executeUpload()">
+                                <span>Upload File</span>
+                            </button>
+                            <button class="btn btn-outline" onclick="cancelStaging()">Cancel</button>
                         </div>
                     </div>
-                    <div class="metric-value" id="statStorageUsed">0 KB</div>
-                    <div class="metric-sub">Supabase Bucket</div>
-                </div>
+                </section>
 
-                <div class="metric-card">
-                    <div class="metric-header">
-                        <span class="metric-title">System Status</span>
-                        <div class="metric-icon-badge green">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                <!-- Files Management Table Section -->
+                <section class="files-view-section">
+                    <div class="section-toolbar">
+                        <div class="toolbar-left">
+                            <h2>All Files</h2>
+                            <span class="item-count-badge" id="itemCountBadge">0 items</span>
+                        </div>
+                        <div class="toolbar-right">
+                            <button class="btn btn-sm btn-ghost" onclick="loadFiles()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+                                Refresh
+                            </button>
                         </div>
                     </div>
-                    <div class="metric-value status-online">Protected</div>
-                    <div class="metric-sub">PostgreSQL RLS Active</div>
-                </div>
 
-                <div class="metric-card">
-                    <div class="metric-header">
-                        <span class="metric-title">Auth Provider</span>
-                        <div class="metric-icon-badge amber">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <!-- Empty State -->
+                    <div class="empty-state" id="emptyState" style="display: none;">
+                        <div class="empty-illustration">
+                            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
                         </div>
+                        <h3>No files found</h3>
+                        <p>Upload a file using the drop zone above to start managing your private storage.</p>
                     </div>
-                    <div class="metric-value">Supabase Auth</div>
-                    <div class="metric-sub" id="statAuthEmail">Verified Session</div>
-                </div>
-            </section>
 
-            <!-- Drag and Drop Upload Zone -->
-            <section class="upload-section">
-                <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
-                    <input type="file" id="fileInput" style="display:none;" onchange="handleFileSelect(event)">
-                    <div class="drop-zone-content">
-                        <div class="upload-icon-circle">
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></svg>
-                        </div>
-                        <h3>Upload Documents & Files</h3>
-                        <p class="drop-hint">Drag and drop files here, or <span class="highlight">browse from device</span></p>
-                        <div class="file-badges">
-                            <span>PDF</span>
-                            <span>Images</span>
-                            <span>Docs</span>
-                            <span>Code</span>
-                            <span>Archives</span>
-                        </div>
+                    <!-- File Items List -->
+                    <div class="files-list" id="fileListContainer"></div>
+                </section>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- 2. TAB: FAVORITES PAGE                         -->
+            <!-- ============================================== -->
+            <div id="tabFavorites" class="tab-content">
+                <div class="page-header">
+                    <div class="page-header-text">
+                        <h2>Favorite Files</h2>
+                        <p>Starred documents and bookmarks for immediate access</p>
                     </div>
+                    <button class="btn btn-secondary btn-sm" onclick="switchTab('all')">
+                        Browse All Files
+                    </button>
                 </div>
 
-                <!-- Selected file preview before uploading -->
-                <div class="upload-staging" id="uploadStaging" style="display:none;">
-                    <div class="staging-info">
-                        <span class="staging-name" id="stagingFileName">sample.pdf</span>
-                        <span class="staging-size" id="stagingFileSize">1.2 MB</span>
-                    </div>
-                    <div class="staging-actions">
-                        <button class="btn btn-primary" id="startUploadBtn" onclick="executeUpload()">
-                            <span>Upload File</span>
-                        </button>
-                        <button class="btn btn-outline" onclick="cancelStaging()">Cancel</button>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Files Management Table Section -->
-            <section class="files-view-section">
                 <div class="section-toolbar">
                     <div class="toolbar-left">
-                        <h2 id="viewSectionTitle">My Files</h2>
-                        <span class="item-count-badge" id="itemCountBadge">0 items</span>
+                        <span class="item-count-badge" id="favCountBadge">0 items</span>
                     </div>
                     <div class="toolbar-right">
                         <button class="btn btn-sm btn-ghost" onclick="loadFiles()">
@@ -334,20 +378,108 @@
                     </div>
                 </div>
 
-                <!-- Empty State -->
-                <div class="empty-state" id="emptyState" style="display: none;">
+                <!-- Favorites Empty State -->
+                <div class="empty-state" id="favEmptyState" style="display: none;">
                     <div class="empty-illustration">
-                        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
+                        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                     </div>
-                    <h3>No files found</h3>
-                    <p>Upload a file using the drop zone above to start managing your private storage.</p>
+                    <h3>No favorite files yet</h3>
+                    <p>Click the star icon next to any document in All Files to bookmark it here for quick reference.</p>
                 </div>
 
-                <!-- File Items List -->
-                <div class="files-list" id="fileListContainer">
-                    <!-- Dynamic file rows will be injected here -->
+                <!-- Favorites File Items List -->
+                <div class="files-list" id="favFileListContainer"></div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- 3. TAB: STORAGE STATS ANALYTICS PAGE           -->
+            <!-- ============================================== -->
+            <div id="tabStorageStats" class="tab-content">
+                <div class="page-header">
+                    <div class="page-header-text">
+                        <h2>Storage Analytics</h2>
+                        <p>Real-time storage quota, usage metrics, and category distributions</p>
+                    </div>
+                    <button class="btn btn-secondary btn-sm" onclick="loadStats()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+                        Refresh Analytics
+                    </button>
                 </div>
-            </section>
+
+                <!-- Storage Gauge Card -->
+                <div class="stats-overview-card">
+                    <div class="stats-overview-header">
+                        <div>
+                            <span class="spec-label">Total Cloud Drive Quota</span>
+                            <div class="stats-metric-large" id="statsPagePercent">0%</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <span class="spec-label">Capacity Status</span>
+                            <div style="font-weight: 700; color: var(--success); margin-top: 4px;">Healthy & Available</div>
+                        </div>
+                    </div>
+                    <div class="progress-bar-bg" style="height: 10px; margin-bottom: 16px;">
+                        <div class="progress-bar-fill" id="statsPageProgressBar" style="width: 0%; height: 10px;"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 14px; color: var(--text-secondary); font-weight: 600;">
+                        <span>Used: <strong id="statsPageUsedText" style="color: var(--text-primary);">0 B</strong></span>
+                        <span>Free: <strong id="statsPageFreeText" style="color: var(--text-primary);">15 GB</strong></span>
+                        <span>Total Limit: <strong id="statsPageLimitText" style="color: var(--text-primary);">15 GB</strong></span>
+                    </div>
+                </div>
+
+                <!-- Categories Breakdown Grid -->
+                <h3 style="font-size: 17px; font-weight: 700; color: var(--text-primary); margin-bottom: 14px;">File Type Distribution</h3>
+                <div class="stats-categories-grid" id="statsCategoriesGrid">
+                    <!-- Dynamic categories rendered via script.js -->
+                </div>
+
+                <!-- Infrastructure & Security Info Card -->
+                <div class="security-specs-card">
+                    <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">Storage Security & Isolation Architecture</h3>
+                    <div class="security-specs-grid">
+                        <div class="spec-item">
+                            <div class="spec-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                            </div>
+                            <div>
+                                <div class="spec-label">Data Isolation</div>
+                                <div class="spec-val">PostgreSQL RLS Active</div>
+                            </div>
+                        </div>
+
+                        <div class="spec-item">
+                            <div class="spec-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
+                            </div>
+                            <div>
+                                <div class="spec-label">Cloud Bucket</div>
+                                <div class="spec-val">Supabase Storage</div>
+                            </div>
+                        </div>
+
+                        <div class="spec-item">
+                            <div class="spec-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                            </div>
+                            <div>
+                                <div class="spec-label">Encryption</div>
+                                <div class="spec-val">TLS 1.3 & AES-256</div>
+                            </div>
+                        </div>
+
+                        <div class="spec-item">
+                            <div class="spec-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                            </div>
+                            <div>
+                                <div class="spec-label">Authentication</div>
+                                <div class="spec-val">Supabase JWT Verified</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
 

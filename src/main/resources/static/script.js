@@ -376,16 +376,27 @@ function getAuthHeaders(isJson = true) {
 // Navigation Tabs
 function switchTab(tab) {
     currentTab = tab;
+
+    // Highlight active sidebar navigation item
     document.querySelectorAll(".nav-item").forEach(btn => {
         btn.classList.toggle("active", btn.getAttribute("data-tab") === tab);
     });
 
-    if (tab === "favorites") {
-        document.getElementById("viewSectionTitle").innerText = "⭐ Favorite Files";
+    // Toggle active tab content page
+    const tabAllFiles = document.getElementById("tabAllFiles");
+    const tabFavorites = document.getElementById("tabFavorites");
+    const tabStorageStats = document.getElementById("tabStorageStats");
+
+    if (tabAllFiles) tabAllFiles.classList.toggle("active", tab === "all");
+    if (tabFavorites) tabFavorites.classList.toggle("active", tab === "favorites");
+    if (tabStorageStats) tabStorageStats.classList.toggle("active", tab === "analytics");
+
+    // Perform page-specific updates
+    if (tab === "analytics") {
+        loadStats();
     } else {
-        document.getElementById("viewSectionTitle").innerText = "📁 My Files";
+        renderFiles(allFiles);
     }
-    renderFiles(allFiles);
 }
 
 // Load Files (Row-Level Security isolated per user)
@@ -412,33 +423,9 @@ async function loadFiles() {
     }
 }
 
-// Render Files to DOM
-function renderFiles(files) {
-    const container = document.getElementById("fileListContainer");
-    const emptyState = document.getElementById("emptyState");
-    const countBadge = document.getElementById("itemCountBadge");
-
-    let filtered = files;
-    if (currentTab === "favorites") {
-        filtered = files.filter(f => f.favorite);
-    }
-
-    const query = document.getElementById("searchInput").value.trim().toLowerCase();
-    if (query) {
-        filtered = filtered.filter(f => f.name.toLowerCase().includes(query));
-    }
-
-    countBadge.innerText = `${filtered.length} items`;
-    document.getElementById("statTotalFiles").innerText = allFiles.length;
-
-    if (filtered.length === 0) {
-        container.innerHTML = "";
-        emptyState.style.display = "block";
-        return;
-    }
-
-    emptyState.style.display = "none";
-    container.innerHTML = filtered.map(file => {
+// Generate File Row HTML
+function renderFileListHtml(fileList) {
+    return fileList.map(file => {
         const fileIcon = getFileIcon(file.extension, file.type);
         const formattedSize = formatBytes(file.size);
         const formattedDate = file.createdAt ? new Date(file.createdAt).toLocaleDateString() : "Just now";
@@ -462,25 +449,69 @@ function renderFiles(files) {
                     </div>
                 </div>
                 <div class="file-actions">
-                    <button class="btn-icon" onclick="toggleFavorite('${file.id}')" title="${file.favorite ? 'Unstar' : 'Star'}">
+                    <button class="btn-icon" onclick="toggleFavorite('${file.id}')" title="${file.favorite ? 'Remove from favorites' : 'Add to favorites'}">
                         ${starIcon}
                     </button>
-                    <button class="btn-icon" onclick="viewFile('${file.id}', '${escapeHtml(file.name)}')" title="Preview">
+                    <button class="btn-icon" onclick="viewFile('${file.id}', '${escapeHtml(file.name)}')" title="Preview file">
                         ${previewIcon}
                     </button>
-                    <button class="btn-icon" onclick="downloadFile('${file.id}', '${escapeHtml(file.name)}')" title="Download">
+                    <button class="btn-icon" onclick="downloadFile('${file.id}', '${escapeHtml(file.name)}')" title="Download file">
                         ${downloadIcon}
                     </button>
-                    <button class="btn-icon" onclick="renameFile('${file.id}', '${escapeHtml(file.name)}')" title="Rename">
+                    <button class="btn-icon" onclick="renameFile('${file.id}', '${escapeHtml(file.name)}')" title="Rename file">
                         ${renameIcon}
                     </button>
-                    <button class="btn-icon" onclick="deleteFile('${file.id}', '${escapeHtml(file.name)}')" title="Delete" style="color:var(--danger)">
+                    <button class="btn-icon" onclick="deleteFile('${file.id}', '${escapeHtml(file.name)}')" title="Delete file" style="color:var(--danger)">
                         ${deleteIcon}
                     </button>
                 </div>
             </div>
         `;
     }).join("");
+}
+
+// Render Files to DOM across both All Files and Favorites views
+function renderFiles(files) {
+    const query = (document.getElementById("searchInput")?.value || "").trim().toLowerCase();
+
+    // 1. Render All Files
+    const allFiltered = query ? files.filter(f => f.name.toLowerCase().includes(query)) : files;
+    const allContainer = document.getElementById("fileListContainer");
+    const allEmptyState = document.getElementById("emptyState");
+    const allCountBadge = document.getElementById("itemCountBadge");
+    const statTotalFiles = document.getElementById("statTotalFiles");
+
+    if (statTotalFiles) statTotalFiles.innerText = files.length;
+    if (allCountBadge) allCountBadge.innerText = `${allFiltered.length} items`;
+
+    if (allContainer && allEmptyState) {
+        if (allFiltered.length === 0) {
+            allContainer.innerHTML = "";
+            allEmptyState.style.display = "block";
+        } else {
+            allEmptyState.style.display = "none";
+            allContainer.innerHTML = renderFileListHtml(allFiltered);
+        }
+    }
+
+    // 2. Render Favorites
+    const favFiles = files.filter(f => f.favorite);
+    const favFiltered = query ? favFiles.filter(f => f.name.toLowerCase().includes(query)) : favFiles;
+    const favContainer = document.getElementById("favFileListContainer");
+    const favEmptyState = document.getElementById("favEmptyState");
+    const favCountBadge = document.getElementById("favCountBadge");
+
+    if (favCountBadge) favCountBadge.innerText = `${favFiltered.length} items`;
+
+    if (favContainer && favEmptyState) {
+        if (favFiltered.length === 0) {
+            favContainer.innerHTML = "";
+            favEmptyState.style.display = "block";
+        } else {
+            favEmptyState.style.display = "none";
+            favContainer.innerHTML = renderFileListHtml(favFiltered);
+        }
+    }
 }
 
 // Drag & Drop Handling
@@ -694,16 +725,116 @@ async function loadStats() {
                 const used = stats.storageUsed || 0;
                 const limit = stats.storageLimit || (15 * 1024 * 1024 * 1024);
                 const percent = Math.min(100, Math.round((used / limit) * 100));
+                const free = Math.max(0, limit - used);
 
-                document.getElementById("statStorageUsed").innerText = formatBytes(used);
-                document.getElementById("storagePercentText").innerText = `${percent}%`;
-                document.getElementById("storageProgressBar").style.width = `${percent}%`;
-                document.getElementById("storageDetailsText").innerText = `${formatBytes(used)} of ${formatBytes(limit)}`;
+                // Update Overview Widget & Top Metric Cards
+                const statStorageUsed = document.getElementById("statStorageUsed");
+                if (statStorageUsed) statStorageUsed.innerText = formatBytes(used);
+
+                const storagePercentText = document.getElementById("storagePercentText");
+                if (storagePercentText) storagePercentText.innerText = `${percent}%`;
+
+                const storageProgressBar = document.getElementById("storageProgressBar");
+                if (storageProgressBar) storageProgressBar.style.width = `${percent}%`;
+
+                const storageDetailsText = document.getElementById("storageDetailsText");
+                if (storageDetailsText) storageDetailsText.innerText = `${formatBytes(used)} of ${formatBytes(limit)}`;
+
+                // Update Dedicated Storage Analytics Page Elements
+                const statsPagePercent = document.getElementById("statsPagePercent");
+                if (statsPagePercent) statsPagePercent.innerText = `${percent}%`;
+
+                const statsPageProgressBar = document.getElementById("statsPageProgressBar");
+                if (statsPageProgressBar) statsPageProgressBar.style.width = `${percent}%`;
+
+                const statsPageUsedText = document.getElementById("statsPageUsedText");
+                if (statsPageUsedText) statsPageUsedText.innerText = formatBytes(used);
+
+                const statsPageFreeText = document.getElementById("statsPageFreeText");
+                if (statsPageFreeText) statsPageFreeText.innerText = formatBytes(free);
+
+                const statsPageLimitText = document.getElementById("statsPageLimitText");
+                if (statsPageLimitText) statsPageLimitText.innerText = formatBytes(limit);
+
+                // Render File Type Category Breakdown
+                renderCategoryCards(stats.sizeByCategory || {}, used);
             }
         }
     } catch (e) {
         console.error("Failed to load storage statistics", e);
     }
+}
+
+// Render Categories Breakdown on Storage Analytics Page
+function renderCategoryCards(categories, totalUsed) {
+    const grid = document.getElementById("statsCategoriesGrid");
+    if (!grid) return;
+
+    const categoryMeta = {
+        "Documents": {
+            color: "#3b82f6",
+            bgColor: "rgba(59, 130, 246, 0.1)",
+            icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>`
+        },
+        "Images": {
+            color: "#06b6d4",
+            bgColor: "rgba(6, 182, 212, 0.1)",
+            icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>`
+        },
+        "Videos": {
+            color: "#8b5cf6",
+            bgColor: "rgba(139, 92, 246, 0.1)",
+            icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m10 9 5 3-5 3z"/></svg>`
+        },
+        "Audio": {
+            color: "#ec4899",
+            bgColor: "rgba(236, 72, 153, 0.1)",
+            icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`
+        },
+        "Code": {
+            color: "#10b981",
+            bgColor: "rgba(16, 185, 129, 0.1)",
+            icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>`
+        },
+        "Archives": {
+            color: "#f59e0b",
+            bgColor: "rgba(245, 158, 11, 0.1)",
+            icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect width="22" height="5" x="1" y="3"/><line x1="10" x2="14" y1="12" y2="12"/></svg>`
+        },
+        "Other": {
+            color: "#64748b",
+            bgColor: "rgba(100, 116, 139, 0.1)",
+            icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>`
+        }
+    };
+
+    const keys = ["Documents", "Images", "Videos", "Audio", "Code", "Archives", "Other"];
+    grid.innerHTML = keys.map(cat => {
+        const bytes = categories[cat] || 0;
+        const meta = categoryMeta[cat] || categoryMeta["Other"];
+        const share = totalUsed > 0 ? Math.round((bytes / totalUsed) * 100) : 0;
+
+        return `
+            <div class="category-card">
+                <div class="category-card-top">
+                    <div class="category-icon-box" style="background: ${meta.bgColor};">
+                        ${meta.icon}
+                    </div>
+                    <div>
+                        <div class="category-name">${cat}</div>
+                        <div style="font-size: 12px; color: var(--text-tertiary);">${share}% of stored files</div>
+                    </div>
+                </div>
+                <div class="category-stats-row">
+                    <span>${formatBytes(bytes)}</span>
+                    <span>${share}%</span>
+                </div>
+                <div class="category-progress-bg">
+                    <div class="category-progress-fill" style="width: ${share}%; background: ${meta.color};"></div>
+                </div>
+            </div>
+        `;
+    }).join("");
 }
 
 // Search Filter
