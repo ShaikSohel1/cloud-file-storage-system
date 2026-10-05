@@ -1,0 +1,31 @@
+# ==============================================================================
+# CloudStorage - Backend Test Profile Configuration (In-Memory H2)
+# ==============================================================================
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:cloudstorage_test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+    properties:
+      hibernate:
+        format_sql: false
+  flyway:
+    enabled: false
+
+app:
+  storage:
+    type: local
+    local:
+      upload-dir: target/test-uploads
+  cors:
+    allowed-origins: "http://localhost:5173,http://localhost:3000"
+
+supabase:
+  jwt:
+    secret: "test-jwt-secret-for-spring-boot-test-suite-long-enough-32-bytes"

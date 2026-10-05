@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudStorage - Enterprise File Management</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/src/styles/style.css">
+</head>
+<body>
+
+    <!-- 1. Fullscreen Authentication Session Check Overlay -->
+    <div id="authLoadingOverlay" class="auth-loading-overlay">
+        <div class="auth-brand-logo">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
+        </div>
+        <div class="auth-loading-spinner"></div>
+        <div class="auth-loading-text">Verifying security session...</div>
+    </div>
+
+    <!-- 2. Authentication Container (Login / Signup / Forgot Password) -->
+    <div id="authContainer" class="auth-page-container" style="display: none;">
+        <div class="auth-card">
+            <!-- Brand Logo -->
+            <div class="auth-header">
+                <div class="auth-brand-logo">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
+                </div>
+                <div class="brand-text">
+                    <h2>CloudStorage</h2>
+                    <span class="badge-pill">Enterprise</span>
+                </div>
+            </div>
+
+            <!-- VIEW: LOGIN -->
+            <div id="loginView">
+                <div class="auth-header" style="margin-bottom: 20px;">
+                    <h3 class="auth-title">Welcome Back</h3>
+                    <p class="auth-subtitle">Sign in to access your secure files</p>
+                </div>
+
+                <div id="loginAlert" class="auth-alert"></div>
+
+                <form id="loginForm" class="auth-form" onsubmit="authUI.handleLogin(event)" novalidate>
+                    <div class="form-group">
+                        <label for="loginEmail">Email Address</label>
+                        <input type="email" id="loginEmail" class="form-input" placeholder="name@example.com" required autocomplete="email">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="loginPassword">Password</label>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="loginPassword" class="form-input" placeholder="Enter your password" required autocomplete="current-password">
+                            <button type="button" class="password-toggle-btn" onclick="authUI.togglePasswordVisibility('loginPassword', this)" title="Show/Hide Password" aria-label="Toggle password visibility">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="auth-links-row">
+                        <span></span>
+                        <button type="button" class="auth-text-link" onclick="authUI.showView('forgot')">Forgot Password?</button>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block" id="loginSubmitBtn">
+                        <span>Login</span>
+                    </button>
+
+                    <div class="auth-switch-text">
+                        Don't have an account?
+                        <button type="button" class="auth-text-link" onclick="authUI.showView('signup')">Create Account</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- VIEW: SIGNUP -->
+            <div id="signupView" style="display: none;">
+                <div class="auth-header" style="margin-bottom: 20px;">
+                    <h3 class="auth-title">Create Account</h3>
+                    <p class="auth-subtitle">Start using CloudStorage for your files</p>
+                </div>
+
+                <div id="signupAlert" class="auth-alert"></div>
+
+                <form id="signupForm" class="auth-form" onsubmit="authUI.handleSignup(event)" novalidate>
+                    <div class="form-group">
+                        <label for="signupFullName">Full Name</label>
+                        <input type="text" id="signupFullName" class="form-input" placeholder="John Doe" required autocomplete="name">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="signupEmail">Email Address</label>
+                        <input type="email" id="signupEmail" class="form-input" placeholder="name@example.com" required autocomplete="email">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="signupPassword">Password</label>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="signupPassword" class="form-input" placeholder="At least 6 characters" required autocomplete="new-password" minlength="6">
+                            <button type="button" class="password-toggle-btn" onclick="authUI.togglePasswordVisibility('signupPassword', this)" title="Show/Hide Password" aria-label="Toggle password visibility">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="signupConfirmPassword">Confirm Password</label>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="signupConfirmPassword" class="form-input" placeholder="Repeat your password" required autocomplete="new-password">
+                            <button type="button" class="password-toggle-btn" onclick="authUI.togglePasswordVisibility('signupConfirmPassword', this)" title="Show/Hide Password" aria-label="Toggle password visibility">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block" id="signupSubmitBtn">
+                        <span>Create Account</span>
+                    </button>
+
+                    <div class="auth-switch-text">
+                        Already have an account?
+                        <button type="button" class="auth-text-link" onclick="authUI.showView('login')">Login</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- VIEW: FORGOT PASSWORD -->
+            <div id="forgotView" style="display: none;">
+                <div class="auth-header" style="margin-bottom: 20px;">
+                    <h3 class="auth-title">Reset Password</h3>
+                    <p class="auth-subtitle">Enter your email to receive recovery instructions</p>
+                </div>
+
+                <div id="forgotAlert" class="auth-alert"></div>
+
+                <form id="forgotForm" class="auth-form" onsubmit="authUI.handleForgot(event)" novalidate>
+                    <div class="form-group">
+                        <label for="forgotEmail">Email Address</label>
+                        <input type="email" id="forgotEmail" class="form-input" placeholder="name@example.com" required autocomplete="email">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block" id="forgotSubmitBtn">
+                        <span>Send Reset Link</span>
+                    </button>
+
+                    <div class="auth-switch-text">
+                        Remembered your password?
+                        <button type="button" class="auth-text-link" onclick="authUI.showView('login')">Back to Login</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Protected Main Application Layout (Visible ONLY when authenticated) -->
+    <div id="appLayout" class="app-layout" style="display: none;">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="logo-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
+                </div>
+                <div class="logo-text">
+                    <h2>CloudStorage</h2>
+                    <span class="badge-pill">Enterprise</span>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-item active" data-tab="all" onclick="switchTab('all')">
+                    <span class="nav-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
+                    </span>
+                    <span>All Files</span>
+                </button>
+                <button class="nav-item" data-tab="favorites" onclick="switchTab('favorites')">
+                    <span class="nav-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    </span>
+                    <span>Favorites</span>
+                </button>
+                <button class="nav-item" data-tab="analytics" onclick="switchTab('analytics')">
+                    <span class="nav-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg>
+                    </span>
+                    <span>Storage Stats</span>
+                </button>
+            </nav>
+
+            <!-- Storage Meter Widget -->
+            <div class="storage-widget">
+                <div class="storage-header">
+                    <span>Storage Used</span>
+                    <strong id="storagePercentText">0%</strong>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="storageProgressBar" style="width: 0%"></div>
+                </div>
+                <div class="storage-details" id="storageDetailsText">0 MB of 15 GB</div>
+            </div>
+
+            <!-- User Profile & Session Widget -->
+            <div class="user-profile-widget" id="userProfileWidget">
+                <div class="avatar-circle" id="userAvatar">U</div>
+                <div class="user-meta">
+                    <div class="user-name" id="userNameLabel">Loading...</div>
+                    <div class="user-email" id="userEmailLabel">User</div>
+                </div>
+                <button class="btn-icon" onclick="authService.logout()" title="Logout" style="color: var(--danger);">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Header -->
+            <header class="topbar">
+                <div class="greeting-box">
+                    <h1 id="welcomeGreeting">Welcome back</h1>
+                    <p class="subtitle">Secure high-performance enterprise file storage with database RLS isolation</p>
+                </div>
+
+                <div class="topbar-actions">
+                    <div class="search-wrapper">
+                        <span class="search-icon">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                        </span>
+                        <input type="text" id="searchInput" placeholder="Search your files by name..." oninput="filterFiles()">
+                    </div>
+
+                    <button class="btn btn-secondary" id="logoutBtn" onclick="authService.logout()" title="Sign Out">
+                        <span>Sign Out</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- ============================================== -->
+            <!-- 1. TAB: ALL FILES PAGE                         -->
+            <!-- ============================================== -->
+            <div id="tabAllFiles" class="tab-content active">
+                <!-- Live Status & Metric Cards -->
+                <section class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">My Total Files</span>
+                            <div class="metric-icon-badge blue">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                            </div>
+                        </div>
+                        <div class="metric-value" id="statTotalFiles">0</div>
+                        <div class="metric-sub" id="statFilesSub">Private to your account</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">Storage Used</span>
+                            <div class="metric-icon-badge purple">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
+                            </div>
+                        </div>
+                        <div class="metric-value" id="statStorageUsed">0 KB</div>
+                        <div class="metric-sub">Supabase Bucket</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">System Status</span>
+                            <div class="metric-icon-badge green">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                            </div>
+                        </div>
+                        <div class="metric-value status-online">Protected</div>
+                        <div class="metric-sub">PostgreSQL RLS Active</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">Auth Provider</span>
+                            <div class="metric-icon-badge amber">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                            </div>
+                        </div>
+                        <div class="metric-value">Supabase Auth</div>
+                        <div class="metric-sub" id="statAuthEmail">Verified Session</div>
+                    </div>
+                </section>
+
+                <!-- Drag and Drop Upload Zone -->
+                <section class="upload-section">
+                    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                        <input type="file" id="fileInput" style="display:none;" onchange="handleFileSelect(event)">
+                        <div class="drop-zone-content">
+                            <div class="upload-icon-circle">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></svg>
+                            </div>
+                            <h3>Upload Documents & Files</h3>
+                            <p class="drop-hint">Drag and drop files here, or <span class="highlight">browse from device</span></p>
+                            <div class="file-badges">
+                                <span>PDF</span>
+                                <span>Images</span>
+                                <span>Docs</span>
+                                <span>Code</span>
+                                <span>Archives</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Selected file preview before uploading -->
+                    <div class="upload-staging" id="uploadStaging" style="display:none;">
+                        <div class="staging-info">
+                            <span class="staging-name" id="stagingFileName">sample.pdf</span>
+                            <span class="staging-size" id="stagingFileSize">1.2 MB</span>
+                        </div>
+                        <div class="staging-actions">
+                            <button class="btn btn-primary" id="startUploadBtn" onclick="executeUpload()">
+                                <span>Upload File</span>
+                            </button>
+                            <button class="btn btn-outline" onclick="cancelStaging()">Cancel</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Files Management Table Section -->
+                <section class="files-view-section">
+                    <div class="section-toolbar">
+                        <div class="toolbar-left">
+                            <h2>All Files</h2>
+                            <span class="item-count-badge" id="itemCountBadge">0 items</span>
+                        </div>
+                        <div class="toolbar-right">
+                            <button class="btn btn-sm btn-ghost" onclick="loadFiles()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+                                Refresh
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div class="empty-state" id="emptyState" style="display: none;">
+                        <div class="empty-illustration">
+                            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
+                        </div>
+                        <h3>No files found</h3>
+                        <p>Upload a file using the drop zone above to start managing your private storage.</p>
+                    </div>
+
+                    <!-- File Items List -->
+                    <div class="files-list" id="fileListContainer"></div>
+                </section>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- 2. TAB: FAVORITES PAGE                         -->
+            <!-- ============================================== -->
+            <div id="tabFavorites" class="tab-content">
+                <div class="page-header">
+                    <div class="page-header-text">
+                        <h2>Favorite Files</h2>
+                        <p>Starred documents and bookmarks for immediate access</p>
+                    </div>
+                    <button class="btn btn-secondary btn-sm" onclick="switchTab('all')">
+                        Browse All Files
+                    </button>
+                </div>
+
+                <div class="section-toolbar">
+                    <div class="toolbar-left">
+                        <span class="item-count-badge" id="favCountBadge">0 items</span>
+                    </div>
+                    <div class="toolbar-right">
+                        <button class="btn btn-sm btn-ghost" onclick="loadFiles()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Favorites Empty State -->
+                <div class="empty-state" id="favEmptyState" style="display: none;">
+                    <div class="empty-illustration">
+                        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    </div>
+                    <h3>No favorite files yet</h3>
+                    <p>Click the star icon next to any document in All Files to bookmark it here for quick reference.</p>
+                </div>
+
+                <!-- Favorites File Items List -->
+                <div class="files-list" id="favFileListContainer"></div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- 3. TAB: STORAGE STATS ANALYTICS PAGE           -->
+            <!-- ============================================== -->
+            <div id="tabStorageStats" class="tab-content">
+                <div class="page-header">
+                    <div class="page-header-text">
+                        <h2>Storage Analytics</h2>
+                        <p>Real-time storage quota, usage metrics, and category distributions</p>
+                    </div>
+                    <button class="btn btn-secondary btn-sm" onclick="loadStats()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+                        Refresh Analytics
+                    </button>
+                </div>
+
+                <!-- Storage Gauge Card -->
+                <div class="stats-overview-card">
+                    <div class="stats-overview-header">
+                        <div>
+                            <span class="spec-label">Total Cloud Drive Quota</span>
+                            <div class="stats-metric-large" id="statsPagePercent">0%</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <span class="spec-label">Capacity Status</span>
+                            <div style="font-weight: 700; color: var(--success); margin-top: 4px;">Healthy & Available</div>
+                        </div>
+                    </div>
+                    <div class="progress-bar-bg" style="height: 10px; margin-bottom: 16px;">
+                        <div class="progress-bar-fill" id="statsPageProgressBar" style="width: 0%; height: 10px;"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 14px; color: var(--text-secondary); font-weight: 600;">
+                        <span>Used: <strong id="statsPageUsedText" style="color: var(--text-primary);">0 B</strong></span>
+                        <span>Free: <strong id="statsPageFreeText" style="color: var(--text-primary);">15 GB</strong></span>
+                        <span>Total Limit: <strong id="statsPageLimitText" style="color: var(--text-primary);">15 GB</strong></span>
+                    </div>
+                </div>
+
+                <!-- Categories Breakdown Grid -->
+                <h3 style="font-size: 17px; font-weight: 700; color: var(--text-primary); margin-bottom: 14px;">File Type Distribution</h3>
+                <div class="stats-categories-grid" id="statsCategoriesGrid">
+                    <!-- Dynamic categories rendered via script.js -->
+                </div>
+
+                <!-- Infrastructure & Security Info Card -->
+                <div class="security-specs-card">
+                    <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">Storage Security & Isolation Architecture</h3>
+                    <div class="security-specs-grid">
+                        <div class="spec-item">
+                            <div class="spec-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                            </div>
+                            <div>
+                                <div class="spec-label">Data Isolation</div>
+                                <div class="spec-val">PostgreSQL RLS Active</div>
+                            </div>
+                        </div>
+
+                        <div class="spec-item">
+                            <div class="spec-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
+                            </div>
+                            <div>
+                                <div class="spec-label">Cloud Bucket</div>
+                                <div class="spec-val">Supabase Storage</div>
+                            </div>
+                        </div>
+
+                        <div class="spec-item">
+                            <div class="spec-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                            </div>
+                            <div>
+                                <div class="spec-label">Encryption</div>
+                                <div class="spec-val">TLS 1.3 & AES-256</div>
+                            </div>
+                        </div>
+
+                        <div class="spec-item">
+                            <div class="spec-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                            </div>
+                            <div>
+                                <div class="spec-label">Authentication</div>
+                                <div class="spec-val">Supabase JWT Verified</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Supabase JS v2 Client Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Application Logic & Centralized Auth State -->
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>

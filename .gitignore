@@ -1,41 +1,52 @@
-HELP.md
+# Compiled Java & Maven output
 target/
+**/target/
+build/
+**/build/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
+# Node & Frontend build output
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+dist-ssr/
+*.local
 
-### IntelliJ IDEA ###
-.idea
+# Environment variables & secrets (allow .env.example templates)
+.env
+.env.*
+*.env
+!.env.example
+!**/.env.example
+
+# IDE & Editor files
+.idea/
 *.iws
 *.iml
 *.ipr
-
-### NetBeans ###
+.vscode/
+.classpath
+.project
+.settings/
+.springBeans
+.sts4-cache
+.apt_generated
+.factorypath
 /nbproject/private/
 /nbbuild/
 /dist/
 /nbdist/
 /.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
 
-### VS Code ###
-.vscode/
-
-
-target/
-uploads/
-*.log
+# Operating System files
 .DS_Store
-.env
-node_modules/
+Thumbs.db
+
+# Storage, logs & temp files
+uploads/
+**/uploads/
+logs/
+*.log

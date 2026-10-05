@@ -1,0 +1,30 @@
+server:
+  port: ${PORT:8080}
+
+spring:
+  profiles:
+    active: dev
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: "0"
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:${FRONTEND_URL:http://localhost:5173,http://localhost:3000,http://localhost:8080,http://localhost:8081}}
+  storage:
+    type: ${STORAGE_TYPE:azure}
+    local:
+      folder-path: ${STORAGE_FOLDER_PATH:${user.dir}/uploads/}
+  supabase:
+    url: ${SUPABASE_URL:https://sqatowxytdyauwqlmkcx.supabase.co}
+    key: ${SUPABASE_KEY:}
+    bucket: ${SUPABASE_BUCKET:cloudstorage}
+
+azure:
+  storage:
+    connection-string: ${AZURE_STORAGE_CONNECTION_STRING:}
+    container-name: ${AZURE_STORAGE_CONTAINER_NAME:cloudstorage}
